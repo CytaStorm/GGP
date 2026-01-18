@@ -1,0 +1,4 @@
+﻿  Window.cpp
+C:\Users\Jeff\Code\540\GGP\Window.cpp(9,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+     Creating library C:\Users\Jeff\Code\540\GGP\x64\Debug\D3D11Starter.lib and object C:\Users\Jeff\Code\540\GGP\x64\Debug\D3D11Starter.exp
+  D3D11Starter.vcxproj -> C:\Users\Jeff\Code\540\GGP\x64\Debug\D3D11Starter.exe
