@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 #include <wrl/client.h>
+#include <string>
 
 class Game
 {
@@ -14,6 +15,7 @@ public:
 
 	// Primary functions
 	void Update(float deltaTime, float totalTime);
+	void BuildUI();
 	void RefreshGUI(float deltaTime);
 	void Draw(float deltaTime, float totalTime);
 	void OnResize();
@@ -37,5 +39,16 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+
+	// holding data
+	int m_number;
+	float m_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	bool m_showDemoWindow = false;
+	std::string m_title = "My first window!";
+	char m_test[100];
+
+	float m_menuWidth = 400;
+	float m_menuHeight = 600;
+	bool m_hideHeader = false;
 };
 

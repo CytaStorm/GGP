@@ -63,6 +63,8 @@ Game::Game()
 		Graphics::Context->VSSetShader(vertexShader.Get(), 0, 0);
 		Graphics::Context->PSSetShader(pixelShader.Get(), 0, 0);
 	}
+
+	m_number = 1;
 }
 
 
@@ -260,11 +262,60 @@ void Game::OnResize()
 void Game::Update(float deltaTime, float totalTime)
 {
 	RefreshGUI(deltaTime);
+	BuildUI();
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::KeyDown(VK_ESCAPE))
 		Window::Quit();
 }
 
+//Builds custom GUI
+void Game::BuildUI() {
+	//building window
+	ImGui::SetNextWindowSize({m_menuWidth, m_menuHeight});
+
+	//hide header?
+	if (m_hideHeader) {
+		ImGui::Begin(m_title.c_str(), NULL, ImGuiWindowFlags_NoTitleBar);
+	}
+	else {
+		ImGui::Begin(m_title.c_str());
+	}
+		
+	if (ImGui::TreeNode("Window stats"))
+	{
+		ImGui::Text("Framerate: %f", ImGui::GetIO().Framerate);
+		ImGui::Text("Window dimensions: %dx%d", Window::Width(), Window::Height());
+		ImGui::TreePop();
+	}
+
+	ImGui::ColorEdit4("Background Color", m_color);
+		
+	if (ImGui::Button("Press to toggle demo window!")) {
+		m_showDemoWindow = !m_showDemoWindow;
+	}
+
+	if (m_showDemoWindow) {
+		ImGui::ShowDemoWindow(&m_showDemoWindow);
+	}
+	
+	//Change window title
+	ImGui::Text("Change the window title here!");
+	ImGui::InputTextMultiline("##source", m_test, IM_ARRAYSIZE(m_test), ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16));
+
+	if (ImGui::Button("Change title!") && !m_test[0] == '\0') {
+		m_title = m_test;
+	}
+
+	//Change window size
+	ImGui::SliderFloat("How wide would you like the window?", &m_menuWidth, 300.0f, 1000.0f, "%f");
+	ImGui::SliderFloat("How high would you like the window?", &m_menuHeight, 400.0f, 720.0f, "%f");
+
+	//hide header
+	ImGui::Checkbox("Hide header?", &m_hideHeader);
+	//ending
+	ImGui::End();
+	
+	};
 
 /// <summary>
 /// Updates GUI
@@ -283,10 +334,7 @@ void Game::RefreshGUI(float deltaTime) {
 	//determine new input capture
 	Input::SetKeyboardCapture(io.WantCaptureKeyboard);
 	Input::SetMouseCapture(io.WantCaptureMouse);
-
-	//Show demo window
-	ImGui::ShowDemoWindow();
-}
+	}
 
 // --------------------------------------------------------
 // Clear the screen, redraw everything, present to the user
@@ -299,8 +347,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	{
 		// Clear the back buffer (erase what's on screen) and depth buffer
-		const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
-		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	color);
+		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	m_color);
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
