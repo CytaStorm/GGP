@@ -3,6 +3,8 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <string>
+#include <memory>
+#include "Mesh.h"
 
 class Game
 {
@@ -19,6 +21,7 @@ public:
 	void RefreshGUI(float deltaTime);
 	void Draw(float deltaTime, float totalTime);
 	void OnResize();
+
 
 private:
 
@@ -50,5 +53,9 @@ private:
 	float m_menuWidth = 400;
 	float m_menuHeight = 600;
 	bool m_hideHeader = false;
+
+	//Meshes
+	std::shared_ptr<Mesh> triangle;
+	std::shared_ptr<Mesh> pentagon;
 };
 
