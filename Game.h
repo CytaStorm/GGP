@@ -55,7 +55,8 @@ private:
 	bool m_hideHeader = false;
 
 	//Meshes
-	std::shared_ptr<Mesh> triangle;
-	std::shared_ptr<Mesh> pentagon;
+	std::shared_ptr<Mesh> m_triangle;
+	std::shared_ptr<Mesh> m_pentagon;
+	std::shared_ptr<Mesh> m_star;
 };
 

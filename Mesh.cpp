@@ -8,8 +8,8 @@ using namespace DirectX;
 
 Mesh::Mesh(Vertex vertices[], int indices[], int verticesLength, int indicesLength)
 {
-	vertexBufferCount = verticesLength;
-	indexBufferCount = indicesLength;
+	m_vertexBufferCount = verticesLength;
+	m_indexBufferCount = indicesLength;
 
 	// Create some temporary variables to represent colors
 	// - Not necessary, just makes things more readable
@@ -41,7 +41,7 @@ Mesh::Mesh(Vertex vertices[], int indices[], int verticesLength, int indicesLeng
 
 		// Actually create the buffer on the GPU with the initial data
 		// - Once we do this, we'll NEVER CHANGE DATA IN THE BUFFER AGAIN
-		Graphics::Device->CreateBuffer(&vbd, &initialVertexData, vertexBuffer.GetAddressOf());
+		Graphics::Device->CreateBuffer(&vbd, &initialVertexData, m_vertexBuffer.GetAddressOf());
 	}
 
 	// Create an INDEX BUFFER
@@ -67,7 +67,7 @@ Mesh::Mesh(Vertex vertices[], int indices[], int verticesLength, int indicesLeng
 
 		// Actually create the buffer with the initial data
 		// - Once we do this, we'll NEVER CHANGE THE BUFFER AGAIN
-		Graphics::Device->CreateBuffer(&ibd, &initialIndexData, indexBuffer.GetAddressOf());
+		Graphics::Device->CreateBuffer(&ibd, &initialIndexData, m_indexBuffer.GetAddressOf());
 	}
 
 }
@@ -88,12 +88,12 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> Mesh::GetIndexBuffer()
 
 int Mesh::GetIndexCount()
 {
-	return indexBufferCount;
+	return m_indexBufferCount;
 }
 
 int Mesh::GetVertexCount()
 {
-	return vertexBufferCount;
+	return m_vertexBufferCount;
 }
 
 void Mesh::Draw()
@@ -109,8 +109,8 @@ void Mesh::Draw()
 		//     when drawing different geometry, so it's here as an example
 		UINT stride = sizeof(Vertex);
 		UINT offset = 0;
-		Graphics::Context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
-		Graphics::Context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		Graphics::Context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+		Graphics::Context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
 		// Tell Direct3D to draw
 		//  - Begins the rendering pipeline on the GPU

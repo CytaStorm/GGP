@@ -181,7 +181,7 @@ void Game::CreateGeometry()
 		{ XMFLOAT3(+0.0f, -0.25f, +0.0f), green },
 	};
 	int triangleIndices[] = { 0, 1, 2 };
-	Game::triangle = std::make_shared<Mesh>(trianglePoints, triangleIndices, 3, 3);
+	Game::m_triangle = std::make_shared<Mesh>(trianglePoints, triangleIndices, 3, 3);
 
 	//Pentagon
 	Vertex pentagonPoints[] = {
@@ -212,17 +212,57 @@ void Game::CreateGeometry()
 		pentagonIndices[i] = i;
 	}
 
-	Game::pentagon = std::make_shared<Mesh>(pentagonPoints, pentagonIndices, 15, 15);
+	Game::m_pentagon = std::make_shared<Mesh>(pentagonPoints, pentagonIndices, 15, 15);
 
-	//Vertex starPoints[] = {
-	//	{ XMFLOAT3(+0.0f, +0.5f, +0.0f), red },
-	//	{ XMFLOAT3(+0.5f, -0.5f, +0.0f), blue },
-	//	{ XMFLOAT3(-0.5f, -0.5f, +0.0f), green },
-	//};
+	//Star
+	Vertex starPoints[] = {
+		{ XMFLOAT3(-0.5f, +0.2f, +0.0f), red },
+		{ XMFLOAT3(-0.45f, +0.1f, +0.0f), blue },
+		{ XMFLOAT3(-0.5f, +0.0f, +0.0f), green },
 
-	////Star
-	//int starIndices[] = { 0, 1, 2 };
-	//star = std::make_shared<Mesh>(starPoints, starIndices, 30, 30);
+		{ XMFLOAT3(-0.45f, +0.1f, +0.0f), blue },
+		{ XMFLOAT3(-0.4f, +0.1f, +0.0f), red },
+		{ XMFLOAT3(-0.5, +0.0f, +0.0f), green },
+
+		{ XMFLOAT3(-0.4f, +0.1f, +0.0f), red },
+		{ XMFLOAT3(-0.43f, -0.0f, +0.0f), red },
+		{ XMFLOAT3(-0.5, +0.0f, +0.0f), green },
+
+		{ XMFLOAT3(-0.5, +0.0f, +0.0f), green },
+		{ XMFLOAT3(-0.43f, -0.0f, +0.0f), red },
+		{ XMFLOAT3(-0.4f, -0.1f, +0.0f), blue },
+
+		{ XMFLOAT3(-0.5, +0.0f, +0.0f), green },
+		{ XMFLOAT3(-0.4f, -0.1f, +0.0f), blue },
+		{ XMFLOAT3(-0.5f, -0.05f, +0.0f), red },
+
+		{ XMFLOAT3(-0.5f, +0.00f, +0.0f), green },
+		{ XMFLOAT3(-0.5f, -0.05f, +0.0f), blue },
+		{ XMFLOAT3(-0.6f, -0.13f, +0.0f), red },
+
+		{ XMFLOAT3(-0.5f, +0.00f, +0.0f), green },
+		{ XMFLOAT3(-0.6f, -0.13f, +0.0f), red },
+		{ XMFLOAT3(-0.52f, +0.0f, +0.0f), green },
+
+		{ XMFLOAT3(-0.65f, +0.1f, +0.0f), red },
+		{ XMFLOAT3(-0.5f, +0.00f, +0.0f), blue },
+		{ XMFLOAT3(-0.52f, +0.0f, +0.0f), green },
+
+		{ XMFLOAT3(-0.65f, +0.1f, +0.0f), red },
+		{ XMFLOAT3(-0.52f, +0.05f, +0.0f), blue },
+		{ XMFLOAT3(-0.5f, +0.00f, +0.0f), green },
+
+		{ XMFLOAT3(-0.52f, +0.05f, +0.0f), blue },
+		{ XMFLOAT3(-0.5f, +0.2f, +0.0f), red },
+		{ XMFLOAT3(-0.5f, +0.0f, +0.0f), green },
+	};
+
+	int starIndices[30];
+	for (int i = 0; i < 30; i++) {
+		starIndices[i] = i;
+	}
+
+	Game::m_star = std::make_shared<Mesh>(starPoints, starIndices, 30, 30);
 }
 
 
@@ -358,8 +398,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	//}
 
 	{
-		Game::triangle->Draw();
-		Game::pentagon->Draw();
+		Game::m_triangle->Draw();
+		Game::m_pentagon->Draw();
+		Game::m_star->Draw();
 	}
 
 	// Frame END

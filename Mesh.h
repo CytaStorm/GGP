@@ -12,22 +12,22 @@ private:
 	/// <summary>
 	/// Vertex Buffer
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer = Microsoft::WRL::ComPtr<ID3D11Buffer>();
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer = Microsoft::WRL::ComPtr<ID3D11Buffer>();
 
 	/// <summary>
 	/// Index Buffer
 	/// </summary>
-	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer = Microsoft::WRL::ComPtr<ID3D11Buffer>();
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer = Microsoft::WRL::ComPtr<ID3D11Buffer>();
 	
 	/// <summary>
 	/// Index Buffer Count
 	/// </summary>
-	int indexBufferCount;
+	int m_indexBufferCount;
 
 	/// <summary>
 	/// Vertex Buffer Count
 	/// </summary>
-	int vertexBufferCount;
+	int m_vertexBufferCount;
 public:
 	Mesh(Vertex vertices[], int indices[], int verticesLength, int indiciesLength);
 	~Mesh();
