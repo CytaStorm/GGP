@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include "Mesh.h"
+#include "BufferStructs.h"
 
 class Game
 {
@@ -54,9 +55,17 @@ private:
 	float m_menuHeight = 600;
 	bool m_hideHeader = false;
 
+	//shader color
+	float m_guiVSDataColor[4];
+	float m_guiVSDataOffset[3];
+
 	//Meshes
 	std::shared_ptr<Mesh> m_triangle;
 	std::shared_ptr<Mesh> m_pentagon;
 	std::shared_ptr<Mesh> m_star;
+
+	//Constant buffer for vertex shader
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VSConstantBuffer;
+	BufferStructs m_vsData = BufferStructs();
 };
 

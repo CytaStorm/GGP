@@ -4,6 +4,7 @@
 #include "Input.h"
 #include "PathHelpers.h"
 #include "Window.h"
+#include "BufferStructs.h"
 
 #include <DirectXMath.h>
 
@@ -38,6 +39,9 @@ Game::Game()
 		Graphics::Device.Get(), Graphics::Context.Get());
 
 	ImGui::StyleColorsDark();
+
+
+
 
 	// Helper methods for loading shaders, creating some basic
 	// geometry to draw and some simple camera matrices.
@@ -153,6 +157,33 @@ void Game::LoadShaders()
 			vertexShaderBlob->GetBufferSize(),		// Size of the shader code that uses this layout
 			inputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
 	}
+
+	//Create shader stuff
+
+	m_vsData.colorTint = DirectX::XMFLOAT4(1.0f, 0.5f, 0.5f, 1.0f);
+	m_vsData.offset = DirectX::XMFLOAT3(0.25f, 0.0f, 0.0f);
+
+	m_guiVSDataColor[0] = m_vsData.colorTint.x;
+	m_guiVSDataColor[1] = m_vsData.colorTint.y;
+	m_guiVSDataColor[2] = m_vsData.colorTint.z;
+	m_guiVSDataColor[3] = m_vsData.colorTint.w;
+
+	m_guiVSDataOffset[0] = m_vsData.offset.x;
+	m_guiVSDataOffset[1] = m_vsData.offset.y;
+	m_guiVSDataOffset[2] = m_vsData.offset.z;
+
+
+	//Create ID3D11Buffer
+	D3D11_BUFFER_DESC cbDesc = {};
+	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbDesc.ByteWidth = 32;
+	cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+
+	Graphics::Device->CreateBuffer(&cbDesc, 0, m_VSConstantBuffer.GetAddressOf());
+
+	//binding
+	Graphics::Context->VSSetConstantBuffers(0, 1, m_VSConstantBuffer.GetAddressOf());
 }
 
 
@@ -330,6 +361,21 @@ void Game::BuildUI() {
 	ImGui::SliderFloat("How wide would you like the window?", &m_menuWidth, 300.0f, 1000.0f, "%f");
 	ImGui::SliderFloat("How high would you like the window?", &m_menuHeight, 400.0f, 720.0f, "%f");
 
+	//Change Shape tint
+	if (ImGui::ColorEdit4(
+		"Shader Tint Color", 
+		m_guiVSDataColor,
+		ImGuiColorEditFlags_NoInputs)){
+		m_vsData.colorTint = DirectX::XMFLOAT4(m_guiVSDataColor);
+	}
+	//Change Shape offset
+	if (ImGui::DragFloat3(
+		"Shader Offset", 
+		m_guiVSDataOffset,
+		0.01f, -1.0f, 1.0f)) {
+		m_vsData.offset = DirectX::XMFLOAT3(m_guiVSDataOffset);
+	}
+
 	//hide header
 	ImGui::Checkbox("Hide header?", &m_hideHeader);
 	//ending
@@ -364,6 +410,13 @@ void Game::Draw(float deltaTime, float totalTime)
 	// Frame START
 	// - These things should happen ONCE PER FRAME
 	// - At the beginning of Game::Draw() before drawing *anything*
+
+	//memcpy shader
+	D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
+	Graphics::Context->Map(m_VSConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
+	memcpy(mappedBuffer.pData, &m_vsData, sizeof(m_vsData));
+
+	Graphics::Context->Unmap(m_VSConstantBuffer.Get(), 0);
 
 	{
 		// Clear the back buffer (erase what's on screen) and depth buffer
