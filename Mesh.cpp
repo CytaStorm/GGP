@@ -6,10 +6,10 @@
 
 using namespace DirectX;
 
-Mesh::Mesh(Vertex vertices[], int indices[], int verticesLength, int indicesLength)
+Mesh::Mesh(Vertex a_vertices[], int a_indices[], int a_verticesLength, int a_indicesLength)
 {
-	m_vertexBufferCount = verticesLength;
-	m_indexBufferCount = indicesLength;
+	m_vertexBufferCount = a_verticesLength;
+	m_indexBufferCount = a_indicesLength;
 
 	// Create some temporary variables to represent colors
 	// - Not necessary, just makes things more readable
@@ -27,7 +27,7 @@ Mesh::Mesh(Vertex vertices[], int indices[], int verticesLength, int indicesLeng
 		//  - After the buffer is created, this description variable is unnecessary
 		D3D11_BUFFER_DESC vbd = {};
 		vbd.Usage = D3D11_USAGE_IMMUTABLE;	// Will NEVER change
-		vbd.ByteWidth = sizeof(Vertex) * verticesLength;       // 3 = number of vertices in the buffer
+		vbd.ByteWidth = sizeof(Vertex) * a_verticesLength;       // 3 = number of vertices in the buffer
 		vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER; // Tells Direct3D this is a vertex buffer
 		vbd.CPUAccessFlags = 0;	// Note: We cannot access the data from C++ (this is good)
 		vbd.MiscFlags = 0;
@@ -37,7 +37,7 @@ Mesh::Mesh(Vertex vertices[], int indices[], int verticesLength, int indicesLeng
 		// - This is how we initially fill the buffer with data
 		// - Essentially, we're specifying a pointer to the data to copy
 		D3D11_SUBRESOURCE_DATA initialVertexData = {};
-		initialVertexData.pSysMem = vertices; // pSysMem = Pointer to System Memory
+		initialVertexData.pSysMem = a_vertices; // pSysMem = Pointer to System Memory
 
 		// Actually create the buffer on the GPU with the initial data
 		// - Once we do this, we'll NEVER CHANGE DATA IN THE BUFFER AGAIN
@@ -55,7 +55,7 @@ Mesh::Mesh(Vertex vertices[], int indices[], int verticesLength, int indicesLeng
 		//  - Bind Flag (used as an index buffer instead of a vertex buffer) 
 		D3D11_BUFFER_DESC ibd = {};
 		ibd.Usage = D3D11_USAGE_IMMUTABLE;	// Will NEVER change
-		ibd.ByteWidth = sizeof(unsigned int) * indicesLength;	// 3 = number of indices in the buffer
+		ibd.ByteWidth = sizeof(unsigned int) * a_indicesLength;	// 3 = number of indices in the buffer
 		ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;	// Tells Direct3D this is an index buffer
 		ibd.CPUAccessFlags = 0;	// Note: We cannot access the data from C++ (this is good)
 		ibd.MiscFlags = 0;
@@ -63,7 +63,7 @@ Mesh::Mesh(Vertex vertices[], int indices[], int verticesLength, int indicesLeng
 
 		// Specify the initial data for this buffer, similar to above
 		D3D11_SUBRESOURCE_DATA initialIndexData = {};
-		initialIndexData.pSysMem = indices; // pSysMem = Pointer to System Memory
+		initialIndexData.pSysMem = a_indices; // pSysMem = Pointer to System Memory
 
 		// Actually create the buffer with the initial data
 		// - Once we do this, we'll NEVER CHANGE THE BUFFER AGAIN

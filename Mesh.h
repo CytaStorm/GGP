@@ -29,7 +29,7 @@ private:
 	/// </summary>
 	int m_vertexBufferCount;
 public:
-	Mesh(Vertex vertices[], int indices[], int verticesLength, int indiciesLength);
+	Mesh(Vertex a_vertices[], int a_indices[], int a_verticesLength, int a_indiciesLength);
 	~Mesh();
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetVertexBuffer();
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer();
