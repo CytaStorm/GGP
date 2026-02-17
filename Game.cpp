@@ -382,6 +382,14 @@ void Game::BuildUI() {
 				if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.1f, 2.0f)) {
 					currentObject->GetTransform().SetScale(scale);
 				}
+
+				int vertexCount = (currentObject->GetMesh()).get()->GetVertexCount();
+				int triangleCount = vertexCount / 3;
+				int indexCount = (currentObject->GetMesh()).get()->GetIndexCount();
+
+				ImGui::Text("Triangles: %d", triangleCount);
+				ImGui::Text("Vertices: %d", vertexCount);
+				ImGui::Text("Indicies: %d", indexCount);
 				ImGui::TreePop();
 			}
 			ImGui::PopID();
