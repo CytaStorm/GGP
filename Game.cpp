@@ -48,6 +48,7 @@ Game::Game()
 	//  - You'll be expanding and/or replacing these later
 	LoadShaders();
 	CreateGeometry();
+	CreateEntities();
 
 	// Set initial graphics API state
 	//  - These settings persist until we change them
@@ -158,25 +159,11 @@ void Game::LoadShaders()
 			inputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
 	}
 
-	//Create shader stuff
-
-	m_vsData.colorTint = DirectX::XMFLOAT4(1.0f, 0.5f, 0.5f, 1.0f);
-	m_vsData.offset = DirectX::XMFLOAT3(0.25f, 0.0f, 0.0f);
-
-	m_guiVSDataColor[0] = m_vsData.colorTint.x;
-	m_guiVSDataColor[1] = m_vsData.colorTint.y;
-	m_guiVSDataColor[2] = m_vsData.colorTint.z;
-	m_guiVSDataColor[3] = m_vsData.colorTint.w;
-
-	m_guiVSDataOffset[0] = m_vsData.offset.x;
-	m_guiVSDataOffset[1] = m_vsData.offset.y;
-	m_guiVSDataOffset[2] = m_vsData.offset.z;
-
 
 	//Create ID3D11Buffer
 	D3D11_BUFFER_DESC cbDesc = {};
 	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cbDesc.ByteWidth = 32;
+	cbDesc.ByteWidth = (sizeof(BufferStructs) + 15) / 16 * 16;
 	cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	cbDesc.Usage = D3D11_USAGE_DYNAMIC;
 
@@ -296,6 +283,18 @@ void Game::CreateGeometry()
 	Game::m_star = std::make_shared<Mesh>(starPoints, starIndices, 30, 30);
 }
 
+void Game::CreateEntities() {
+	//create game entities
+	m_entitiesList.push_back(GameEntity(m_triangle));
+	m_entitiesList.push_back(GameEntity(m_pentagon));
+	m_entitiesList.push_back(GameEntity(m_star));
+	m_entitiesList.push_back(GameEntity(m_triangle));
+	m_entitiesList.push_back(GameEntity(m_pentagon));
+
+	m_entitiesList[3].GetTransform().MoveAbsolute(0.2f, 0.2f, 0.0f);
+	m_entitiesList[4].GetTransform().MoveAbsolute(0.2f, 0.2f, 0.0f);
+}
+
 
 // --------------------------------------------------------
 // Handle resizing to match the new window size
@@ -317,6 +316,10 @@ void Game::Update(float deltaTime, float totalTime)
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::KeyDown(VK_ESCAPE))
 		Window::Quit();
+
+	for (GameEntity& object : m_entitiesList) {
+		object.GetTransform().MoveAbsolute(sin(totalTime * 2) * deltaTime, sin(totalTime * 2) * deltaTime, 0.0f);
+	}
 }
 
 //Builds custom GUI
@@ -361,20 +364,31 @@ void Game::BuildUI() {
 	ImGui::SliderFloat("How wide would you like the window?", &m_menuWidth, 300.0f, 1000.0f, "%f");
 	ImGui::SliderFloat("How high would you like the window?", &m_menuHeight, 400.0f, 720.0f, "%f");
 
+	if (ImGui::TreeNode("Scene Objects")) {
+		for (int i = 1; i < 6; i++) {
+			ImGui::PushID(i);
+			if (ImGui::TreeNode("", "Object %d", i)) {
+				GameEntity* currentObject = &m_entitiesList[i - 1];
+				DirectX::XMFLOAT3 position = currentObject->GetTransform().GetPosition();
+				DirectX::XMFLOAT4 rotation = currentObject->GetTransform().GetRotation();
+				DirectX::XMFLOAT3 scale = currentObject->GetTransform().GetScale();
+
+				if (ImGui::DragFloat3("Translation", &position.x, 0.1f, -1.0f, 1.0f)) {
+					currentObject->GetTransform().SetPosition(position);
+				};
+				if (ImGui::DragFloat4("Rotation (Quaternion)", &rotation.x, 0.1f, -1.0f, 1.0f)) {
+					currentObject->GetTransform().SetRotation(rotation);
+				}
+				if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.1f, 2.0f)) {
+					currentObject->GetTransform().SetScale(scale);
+				}
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
+		ImGui::TreePop();
+	}
 	//Change Shape tint
-	if (ImGui::ColorEdit4(
-		"Shader Tint Color", 
-		m_guiVSDataColor,
-		ImGuiColorEditFlags_NoInputs)){
-		m_vsData.colorTint = DirectX::XMFLOAT4(m_guiVSDataColor);
-	}
-	//Change Shape offset
-	if (ImGui::DragFloat3(
-		"Shader Offset", 
-		m_guiVSDataOffset,
-		0.01f, -1.0f, 1.0f)) {
-		m_vsData.offset = DirectX::XMFLOAT3(m_guiVSDataOffset);
-	}
 
 	//hide header
 	ImGui::Checkbox("Hide header?", &m_hideHeader);
@@ -411,13 +425,6 @@ void Game::Draw(float deltaTime, float totalTime)
 	// - These things should happen ONCE PER FRAME
 	// - At the beginning of Game::Draw() before drawing *anything*
 
-	//memcpy shader
-	D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
-	Graphics::Context->Map(m_VSConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
-	memcpy(mappedBuffer.pData, &m_vsData, sizeof(m_vsData));
-
-	Graphics::Context->Unmap(m_VSConstantBuffer.Get(), 0);
-
 	{
 		// Clear the back buffer (erase what's on screen) and depth buffer
 		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	m_color);
@@ -451,9 +458,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	//}
 
 	{
-		Game::m_triangle->Draw();
-		Game::m_pentagon->Draw();
-		Game::m_star->Draw();
+		for (GameEntity& entity : m_entitiesList) {
+			entity.Draw(m_VSConstantBuffer);
+		}
 	}
 
 	// Frame END

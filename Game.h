@@ -4,8 +4,10 @@
 #include <wrl/client.h>
 #include <string>
 #include <memory>
+#include <vector>
 #include "Mesh.h"
 #include "BufferStructs.h"
+#include "GameEntity.h"
 
 class Game
 {
@@ -29,6 +31,8 @@ private:
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
 	void LoadShaders();
 	void CreateGeometry();
+
+	void CreateEntities();
 
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
@@ -55,17 +59,15 @@ private:
 	float m_menuHeight = 600;
 	bool m_hideHeader = false;
 
-	//shader color
-	float m_guiVSDataColor[4];
-	float m_guiVSDataOffset[3];
-
 	//Meshes
 	std::shared_ptr<Mesh> m_triangle;
 	std::shared_ptr<Mesh> m_pentagon;
 	std::shared_ptr<Mesh> m_star;
 
+	//GameEntities
+	std::vector<GameEntity> m_entitiesList;
+
 	//Constant buffer for vertex shader
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VSConstantBuffer;
-	BufferStructs m_vsData = BufferStructs();
 };
 
