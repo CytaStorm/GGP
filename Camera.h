@@ -41,6 +41,6 @@ public:
 
 	Transform GetTransform();
 
-	DirectX::XMFLOAT4 RotationFromFowardRight(DirectX::XMFLOAT3 a_newForward, DirectX::XMFLOAT3 a_newRight);
+	DirectX::XMFLOAT4 RotationFromForwardRight(DirectX::XMFLOAT3 a_newForward, DirectX::XMFLOAT3 a_newRight);
 };
 

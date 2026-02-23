@@ -470,7 +470,7 @@ void Game::BuildUI() {
 	//ending
 	ImGui::End();
 	
-	};
+};
 
 /// <summary>
 /// Updates GUI

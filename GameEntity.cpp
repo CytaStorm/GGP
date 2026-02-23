@@ -4,9 +4,6 @@ GameEntity::GameEntity(std::shared_ptr<Mesh> a_meshPtr)
 {
 	m_transform = Transform();
 	m_mesh = a_meshPtr;
-
-	//calculate geometric center of points
-	DirectX::XMVECTOR center;
 }
 
 GameEntity::~GameEntity()

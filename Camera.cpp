@@ -42,6 +42,10 @@ void Camera::UpdateProjectionMatrix(float a_aspectRatio)
 		break;
 	case Projection::ORTHOGRAPHIC:
 		projectionMatrix = DirectX::XMMatrixOrthographicLH(2, 1, m_nearPlane, m_farPlane);
+		break;
+	default:
+		projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(m_fovRadians, a_aspectRatio, m_nearPlane, m_farPlane);
+		break;
 	}
 	DirectX::XMStoreFloat4x4(&m_projectionMatrix, projectionMatrix);
 }
@@ -125,7 +129,7 @@ void Camera::Update(float a_deltaTime)
 		//clamp forward vector (too high)
 		if (potentialForward.y > 0.8 || potentialForward.y < -0.8) {
 			potentialForward.y = std::clamp(potentialForward.y, -0.8f, 0.8f);
-			finalRotation = RotationFromFowardRight(potentialForward, potentialRight);
+			finalRotation = RotationFromForwardRight(potentialForward, potentialRight);
 		}
 
 		m_transform.SetRotation(finalRotation);
@@ -137,7 +141,7 @@ Transform Camera::GetTransform() {
 	return m_transform;
 }
 
-DirectX::XMFLOAT4 Camera::RotationFromFowardRight(DirectX::XMFLOAT3 a_newForward, DirectX::XMFLOAT3 a_newRight)
+DirectX::XMFLOAT4 Camera::RotationFromForwardRight(DirectX::XMFLOAT3 a_newForward, DirectX::XMFLOAT3 a_newRight)
 {
 	DirectX::XMFLOAT3 position = m_transform.GetPosition();
 	DirectX::XMVECTOR positionVector = DirectX::XMLoadFloat3(&position);
