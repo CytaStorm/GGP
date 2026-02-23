@@ -29,6 +29,8 @@ using namespace DirectX;
 // --------------------------------------------------------
 Game::Game()
 {
+
+
 	IMGUI_CHECKVERSION
 	();
 	ImGui::CreateContext();
@@ -284,6 +286,36 @@ void Game::CreateGeometry()
 }
 
 void Game::CreateEntities() {
+	//Create Cameras
+	std::shared_ptr cameraPerspective = std::make_shared<Camera>(
+		Window::AspectRatio(),
+		DirectX::XMFLOAT3(0.0f, 0.0f, -1.0f),
+		DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+		0.5 * std::numbers::pi_v<float>,
+		0.01f,
+		999.0f,
+		1.0f,
+		0.01f,
+		Projection::PERSPECTIVE
+	);
+
+	std::shared_ptr cameraOrthographic = std::make_shared<Camera>(
+		Window::AspectRatio(),
+		DirectX::XMFLOAT3(-0.5f, 0.0f, -1.0f),
+		DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
+		0.4 * std::numbers::pi_v<float>,
+		0.01f,
+		999.0f,
+		1.0f,
+		0.01f,
+		Projection::ORTHOGRAPHIC
+	);
+
+	m_camerasList.push_back(cameraPerspective);
+	m_camerasList.push_back(cameraOrthographic);
+
+	m_activeCamera = cameraOrthographic;
+
 	//create game entities
 	m_entitiesList.push_back(GameEntity(m_triangle));
 	m_entitiesList.push_back(GameEntity(m_pentagon));
@@ -291,8 +323,8 @@ void Game::CreateEntities() {
 	m_entitiesList.push_back(GameEntity(m_triangle));
 	m_entitiesList.push_back(GameEntity(m_pentagon));
 
-	m_entitiesList[3].GetTransform().MoveAbsolute(0.2f, 0.2f, 0.0f);
-	m_entitiesList[4].GetTransform().MoveAbsolute(0.2f, 0.2f, 0.0f);
+	m_entitiesList[3].GetTransform().MoveAbsolute(0.2f, 0.2f, -0.5f);
+	m_entitiesList[4].GetTransform().MoveAbsolute(0.2f, 0.2f, 1.0f);
 }
 
 
@@ -302,7 +334,11 @@ void Game::CreateEntities() {
 // --------------------------------------------------------
 void Game::OnResize()
 {
-	
+	for (std::shared_ptr<Camera> camera : m_camerasList) {
+		if (camera == nullptr) return;
+		camera->UpdateProjectionMatrix(Window::AspectRatio());
+	}
+
 }
 
 
@@ -317,9 +353,10 @@ void Game::Update(float deltaTime, float totalTime)
 	if (Input::KeyDown(VK_ESCAPE))
 		Window::Quit();
 
-	for (GameEntity& object : m_entitiesList) {
-		object.GetTransform().MoveAbsolute(sin(totalTime * 2) * deltaTime, sin(totalTime * 2) * deltaTime, 0.0f);
-	}
+	//for (GameEntity& object : m_entitiesList) {
+	//	object.GetTransform().MoveAbsolute(sin(totalTime * 2) * deltaTime, sin(totalTime * 2) * deltaTime, 0.0f);
+	//}
+	m_activeCamera->Update(deltaTime);
 }
 
 //Builds custom GUI
@@ -394,9 +431,39 @@ void Game::BuildUI() {
 			}
 			ImGui::PopID();
 		}
-		ImGui::TreePop();
 	}
 	//Change Shape tint
+
+	ImGui::SeparatorText("Cameras");
+
+	static int e = 1;
+	if (ImGui::RadioButton("Camera 1: Perspective", &e, 0)) {
+		m_activeCamera = m_camerasList[0];
+	}
+	if (ImGui::RadioButton("Camera 2: Orthographic", &e, 1)) {
+		m_activeCamera = m_camerasList[1];
+	}
+
+	if (ImGui::TreeNode("Active Camera")) {
+		//Camera
+		DirectX::XMFLOAT3 position = m_activeCamera->GetTransform().GetPosition();
+		DirectX::XMFLOAT4 rotation = m_activeCamera->GetTransform().GetRotation();
+		DirectX::XMFLOAT3 scale = m_activeCamera->GetTransform().GetScale();
+
+		if (ImGui::DragFloat3("Translation", &position.x, 0.1f, -1.0f, 1.0f)) {
+			m_activeCamera->GetTransform().SetPosition(position);
+		};
+		if (ImGui::DragFloat4("Rotation (Quaternion)", &rotation.x, 0.1f, -1.0f, 1.0f)) {
+			m_activeCamera->GetTransform().SetRotation(rotation);
+		}
+		if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.1f, 2.0f)) {
+			m_activeCamera->GetTransform().SetScale(scale);
+		}
+		DirectX::XMFLOAT3 forwards = m_activeCamera->GetTransform().GetForward();
+		if (ImGui::DragFloat3("Forwards", &forwards.x, 0.1f, 0.1f, 2.0f)) {
+		}
+		ImGui::TreePop();
+	};
 
 	//hide header
 	ImGui::Checkbox("Hide header?", &m_hideHeader);
@@ -467,7 +534,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	{
 		for (GameEntity& entity : m_entitiesList) {
-			entity.Draw(m_VSConstantBuffer);
+			entity.Draw(m_VSConstantBuffer, m_activeCamera);
 		}
 	}
 

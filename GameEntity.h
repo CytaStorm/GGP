@@ -4,6 +4,8 @@
 #include <memory>
 #include <wrl/client.h>
 #include "BufferStructs.h"
+#include "Camera.h"
+
 class GameEntity
 {
 private:
@@ -18,7 +20,7 @@ public:
 
 	std::shared_ptr<Mesh> GetMesh();
 	Transform& GetTransform();
-	void Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer);
+	void Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer, std::shared_ptr<Camera> a_camera);
 	void ChangeTint(DirectX::XMFLOAT4 a_newTint);
 };
 

@@ -8,6 +8,7 @@
 #include "Mesh.h"
 #include "BufferStructs.h"
 #include "GameEntity.h"
+#include "Camera.h"
 
 class Game
 {
@@ -69,5 +70,9 @@ private:
 
 	//Constant buffer for vertex shader
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VSConstantBuffer;
+
+	//Cameras
+	std::vector<std::shared_ptr<Camera>> m_camerasList;
+	std::shared_ptr<Camera> m_activeCamera;
 };
 

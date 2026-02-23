@@ -24,11 +24,13 @@ Transform& GameEntity::GetTransform()
 	return m_transform;
 }
 
-void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer)
+void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer, std::shared_ptr<Camera> a_camera)
 {
 	//update struct matrix;
 	m_transform.CalculateWorldMatrix();
-	m_vsData.m_world = m_transform.GetWorldMatrix();
+	m_vsData.m_worldMatrix = m_transform.GetWorldMatrix();
+	m_vsData.m_projectionMatrix = a_camera->GetProjectionMatrix();
+	m_vsData.m_viewMatrix = a_camera->GetViewMatrix();
 
 	//memcpy shader
 	D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
