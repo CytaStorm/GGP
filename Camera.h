@@ -22,6 +22,7 @@ private:
 
 	Projection m_projection = Projection::PERSPECTIVE;
 
+
 public:
 	Camera(
 		float a_aspectRatio, 
@@ -39,5 +40,8 @@ public:
 	void Update(float a_deltaTime);
 
 	Transform GetTransform();
+
+	float m_lookOffsetYaw = 0;
+	float m_lookOffsetPitch = 0;
 };
 

@@ -76,6 +76,14 @@ void Camera::Update(float a_deltaTime)
 		float scaledCursorMovementX = cursorMovementX * m_mouseLookSpeed;
 		float scaledCursorMovementY = cursorMovementY * m_mouseLookSpeed;
 
+		m_lookOffsetPitch += scaledCursorMovementY;
+		m_lookOffsetYaw += scaledCursorMovementX;
+
+		if (m_lookOffsetPitch > 1 || m_lookOffsetPitch < -1) {
+			m_lookOffsetPitch = std::clamp(m_lookOffsetPitch, -1.0f, 1.0f);
+			scaledCursorMovementY = 0;
+		}
+
 		//change in rotation
 		DirectX::XMVECTOR rotationOffsetVector = 
 			DirectX::XMQuaternionRotationRollPitchYaw(
@@ -104,25 +112,6 @@ void Camera::Update(float a_deltaTime)
 		DirectX::XMFLOAT4 finalRotation;
 		DirectX::XMStoreFloat4(&finalRotation, potentialRotationVector);
 
-		//clamp forward vector (too high)
-		//if (potentialForward.y > 0.8 || potentialForward.y < -0.8) {
-		//		potentialForward.y = std::clamp(potentialForward.y, -0.8f, 0.8f);
-
-		//		DirectX::XMFLOAT3 position = m_transform.GetPosition();
-		//		DirectX::XMVECTOR positionVector = DirectX::XMLoadFloat3(&position);
-		//		DirectX::XMVECTOR newForwardVector = DirectX::XMLoadFloat3(&potentialForward);
-		//		DirectX::XMVECTOR upVector{ 0.0f, 1.0f, 0.0f, 0.0f };
-
-		//		//use new up + forwards to calculate new rotation
-		//		DirectX::XMMATRIX clampedView =
-		//			DirectX::XMMatrixLookToLH(
-		//				positionVector, newForwardVector, upVector);
-
-		//		//load new rotation, recalculate new directions
-		//		DirectX::XMVECTOR rotationQuaternion = DirectX::XMQuaternionRotationMatrix(clampedView);
-		//		//Conjugate of rotation b/c view matrix is inverse of camera's transform
-		//		DirectX::XMStoreFloat4(&finalRotation, DirectX::XMQuaternionConjugate(rotationQuaternion));
-		//	}
 		m_transform.SetRotation(finalRotation);
 	}
 	//process user input

@@ -132,9 +132,7 @@ void Transform::MoveAbsolute(float a_x, float a_y, float a_z)
 
 void Transform::Rotate(float a_pitch, float a_yaw, float a_roll)
 {
-	if (a_pitch == 0 && a_yaw == 0 && a_roll == 0) {
-		return;
-	}
+	if (a_pitch == 0 && a_yaw == 0 && a_roll == 0) return;
 
 	//Only update when offset not zero
 	DirectX::XMVECTOR rotationOffsetVector = DirectX::XMQuaternionRotationRollPitchYaw(a_pitch, a_yaw, a_roll);
@@ -222,6 +220,11 @@ void Transform::MoveRelative(DirectX::XMFLOAT3 a_offset)
 void Transform::MoveRelative(float a_x, float a_y, float a_z)
 {
 	DirectX::XMFLOAT3 offset(a_x, a_y, a_z);
+
+	//move on x axis
+	float xOffset = a_x * m_right
+	//move on y axis
+	//move on z axis
 	Transform::MoveRelative(offset);
 }
 
@@ -252,8 +255,8 @@ void Transform::UpdateTransformDirection(DirectX::XMVECTOR a_rotation)
 	//DirectX::XMStoreFloat3(&m_right, right);
 	//DirectX::XMStoreFloat3(&m_up, up);
 	//DirectX::XMMatrixLookToLH(DirectX::XMLoadFloat3(&m_position), forward, DirectX::XMLoadFloat3(&m_up));
-
-	DirectX::XMStoreFloat3(&m_right, DirectX::XMVector3Cross(forward, DirectX::XMLoadFloat3(&m_up)));
+	DirectX::XMVECTOR newRightVector = DirectX::XMVector3Cross(forward, DirectX::XMLoadFloat3(&m_up));
+	DirectX::XMStoreFloat3(&m_right, newRightVector);
 	DirectX::XMStoreFloat3(&m_forward, forward);
 }
 

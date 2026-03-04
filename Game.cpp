@@ -290,7 +290,7 @@ void Game::BuildUI() {
 	ImGui::SliderFloat("How high would you like the window?", &m_menuHeight, 400.0f, 720.0f, "%f");
 
 	if (ImGui::TreeNode("Scene Objects")) {
-		for (int i = 1; i < 6; i++) {
+		for (int i = 1; i < 4; i++) {
 			ImGui::PushID(i);
 			if (ImGui::TreeNode("", "Object %d", i)) {
 				GameEntity* currentObject = &m_entitiesList[i - 1];
@@ -319,6 +319,7 @@ void Game::BuildUI() {
 			}
 			ImGui::PopID();
 		}
+		ImGui::TreePop();
 	}
 	//Change Shape tint
 
@@ -352,7 +353,14 @@ void Game::BuildUI() {
 		}
 
 		DirectX::XMFLOAT3 right = m_activeCamera->GetTransform().GetRight();
-		if (ImGui::DragFloat3("Forwards", &right.x, 0.1f, 0.1f, 2.0f)) {
+		if (ImGui::DragFloat3("Right", &right.x, 0.1f, 0.1f, 2.0f)) {
+		}
+
+		DirectX::XMFLOAT3 up = m_activeCamera->GetTransform().GetUp();
+		if (ImGui::DragFloat3("Up", &up.x, 0.1f, 0.1f, 2.0f)) {
+		}
+
+		if (ImGui::DragFloat("Look X", &(m_activeCamera->m_lookOffsetPitch), 0.1f, 0.1f, 2.0f)) {
 		}
 		ImGui::TreePop();
 	};
