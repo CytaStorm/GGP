@@ -1,5 +1,7 @@
 #include "Camera.h"
 #include <algorithm>
+#include "Input.h"
+#include "Helper.h"
 
 Camera::Camera(
 	float a_aspectRatio, 
@@ -66,6 +68,63 @@ void Camera::UpdateViewMatrix()
 
 void Camera::Update(float a_deltaTime)
 {
+	//rotation
+	if (Input::MouseLeftDown()) {
+		int cursorMovementX = Input::GetMouseXDelta();
+		int cursorMovementY = Input::GetMouseYDelta();
+
+		float scaledCursorMovementX = cursorMovementX * m_mouseLookSpeed;
+		float scaledCursorMovementY = cursorMovementY * m_mouseLookSpeed;
+
+		//change in rotation
+		DirectX::XMVECTOR rotationOffsetVector = 
+			DirectX::XMQuaternionRotationRollPitchYaw(
+				scaledCursorMovementY, scaledCursorMovementX, 0.0f);
+
+		DirectX::XMFLOAT4 originalRotation = m_transform.GetRotation();
+		DirectX::XMVECTOR originalRotationVector = DirectX::XMLoadFloat4(&originalRotation);
+
+		DirectX::XMVECTOR potentialRotationVector = 
+			DirectX::XMQuaternionMultiply(originalRotationVector, rotationOffsetVector);
+
+		DirectX::XMFLOAT3 potentialForward;
+		DirectX::XMFLOAT3 transformForward = m_transform.GetForward();
+		DirectX::XMVECTOR potentialForwardVector = DirectX::XMLoadFloat3(&transformForward);
+
+		DirectX::XMFLOAT3 potentialRight;
+		DirectX::XMFLOAT3 transformRight = m_transform.GetRight();
+		DirectX::XMVECTOR potentialRightVector = DirectX::XMLoadFloat3(&transformRight);
+
+		potentialForwardVector = DirectX::XMVector3Rotate(potentialForwardVector, rotationOffsetVector);
+		potentialRightVector = DirectX::XMVector3Rotate(potentialRightVector, rotationOffsetVector);
+
+		DirectX::XMStoreFloat3(&potentialForward, potentialForwardVector);
+		DirectX::XMStoreFloat3(&potentialRight, potentialRightVector);
+
+		DirectX::XMFLOAT4 finalRotation;
+		DirectX::XMStoreFloat4(&finalRotation, potentialRotationVector);
+
+		//clamp forward vector (too high)
+		//if (potentialForward.y > 0.8 || potentialForward.y < -0.8) {
+		//		potentialForward.y = std::clamp(potentialForward.y, -0.8f, 0.8f);
+
+		//		DirectX::XMFLOAT3 position = m_transform.GetPosition();
+		//		DirectX::XMVECTOR positionVector = DirectX::XMLoadFloat3(&position);
+		//		DirectX::XMVECTOR newForwardVector = DirectX::XMLoadFloat3(&potentialForward);
+		//		DirectX::XMVECTOR upVector{ 0.0f, 1.0f, 0.0f, 0.0f };
+
+		//		//use new up + forwards to calculate new rotation
+		//		DirectX::XMMATRIX clampedView =
+		//			DirectX::XMMatrixLookToLH(
+		//				positionVector, newForwardVector, upVector);
+
+		//		//load new rotation, recalculate new directions
+		//		DirectX::XMVECTOR rotationQuaternion = DirectX::XMQuaternionRotationMatrix(clampedView);
+		//		//Conjugate of rotation b/c view matrix is inverse of camera's transform
+		//		DirectX::XMStoreFloat4(&finalRotation, DirectX::XMQuaternionConjugate(rotationQuaternion));
+		//	}
+		m_transform.SetRotation(finalRotation);
+	}
 	//process user input
 	//movement
 	if (Input::KeyDown('W')) {
@@ -87,86 +146,9 @@ void Camera::Update(float a_deltaTime)
 		m_transform.MoveRelative(0.0f, -m_moveSpeed * a_deltaTime, 0.0f);
 	}
 
-	//rotation
-	if (Input::MouseLeftDown()) {
-		int cursorMovementX = Input::GetMouseXDelta();
-		int cursorMovementY = Input::GetMouseYDelta();
-
-		float scaledCursorMovementX = cursorMovementX * m_mouseLookSpeed;
-		float scaledCursorMovementY = cursorMovementY * m_mouseLookSpeed;
-
-
-		//m_transform.Rotate(scaledCursorMovementY, scaledCursorMovementX, 0.0f);
-		//calculate potential change in rotation, copied mostly from transform.cpp
-		if (scaledCursorMovementY == 0.0f && scaledCursorMovementX == 0.0f) {
-			return;
-		}
-
-		DirectX::XMVECTOR rotationOffsetVector = 
-			DirectX::XMQuaternionRotationRollPitchYaw(
-				scaledCursorMovementY, scaledCursorMovementX, 0.0f);
-
-		DirectX::XMFLOAT4 originalRotation = m_transform.GetRotation();
-		DirectX::XMVECTOR originalRotationVector = DirectX::XMLoadFloat4(&originalRotation);
-
-		DirectX::XMVECTOR potentialRotationVector = DirectX::XMQuaternionMultiply(originalRotationVector, rotationOffsetVector);
-
-		DirectX::XMFLOAT3 potentialForward;
-		DirectX::XMVECTOR potentialForwardVector = DirectX::XMLoadFloat3(&m_transform.m_forward);
-
-		DirectX::XMFLOAT3 potentialRight;
-		DirectX::XMVECTOR potentialRightVector = DirectX::XMLoadFloat3(&m_transform.m_right);
-
-		potentialForwardVector = DirectX::XMVector3Rotate(potentialForwardVector, rotationOffsetVector);
-		potentialRightVector = DirectX::XMVector3Rotate(potentialRightVector, rotationOffsetVector);
-
-		DirectX::XMStoreFloat3(&potentialForward, potentialForwardVector);
-		DirectX::XMStoreFloat3(&potentialRight, potentialRightVector);
-
-		DirectX::XMFLOAT4 finalRotation;
-		DirectX::XMStoreFloat4(&finalRotation, potentialRotationVector);
-
-		//clamp forward vector (too high)
-		if (potentialForward.y > 0.8 || potentialForward.y < -0.8) {
-			potentialForward.y = std::clamp(potentialForward.y, -0.8f, 0.8f);
-			finalRotation = RotationFromForwardRight(potentialForward, potentialRight);
-		}
-
-		m_transform.SetRotation(finalRotation);
-	}
 	Camera::UpdateViewMatrix();
 }
 
 Transform Camera::GetTransform() {
 	return m_transform;
 }
-
-DirectX::XMFLOAT4 Camera::RotationFromForwardRight(DirectX::XMFLOAT3 a_newForward, DirectX::XMFLOAT3 a_newRight)
-{
-	DirectX::XMFLOAT3 position = m_transform.GetPosition();
-	DirectX::XMVECTOR positionVector = DirectX::XMLoadFloat3(&position);
-
-	//gets clamped forwards
-	DirectX::XMVECTOR forwardVector = DirectX::XMLoadFloat3(&a_newForward);
-
-	//get right (unaffected)
-	DirectX::XMVECTOR rightVector = DirectX::XMLoadFloat3(&a_newRight);
-
-	//calculate new up
-	DirectX::XMVECTOR upVector = DirectX::XMVector3Cross(forwardVector, rightVector);
-	DirectX::XMFLOAT4 up;
-	DirectX::XMStoreFloat4(&up, upVector);
-
-	//use new up + forwards to calculate new rotation
-	DirectX::XMMATRIX clampedView =
-		DirectX::XMMatrixLookToLH(
-			positionVector, forwardVector, upVector);
-
-	//load new rotation, recalculate new directions
-	DirectX::XMVECTOR rotationQuaternion = DirectX::XMQuaternionRotationMatrix(clampedView);
-	DirectX::XMFLOAT4 rotation;
-	//Conjugate of rotation b/c view matrix is inverse of camera's transform
-	DirectX::XMStoreFloat4(&rotation, DirectX::XMQuaternionConjugate(rotationQuaternion));
-	return rotation;
-}
-

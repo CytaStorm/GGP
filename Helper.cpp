@@ -1,31 +1,28 @@
 #include "Helper.h"
-#include <cmath>
+#include <d3dcompiler.h>
+#include "PathHelpers.h"
+#include "Graphics.h"
 
-DirectX::XMFLOAT3 Helper::QuaternionToEuler(DirectX::XMFLOAT4 a_quaternion)
+void Helper::LoadVertexShader(
+	ID3DBlob** a_pVertexShaderBlob, Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader)
 {
-	//from https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/Quaternions.pdf
-	float x = a_quaternion.x;
-	float y = a_quaternion.y;
-	float z = a_quaternion.z;
-	float w = a_quaternion.w;
+	D3DReadFileToBlob(FixPath(L"VertexShader.cso").c_str(), a_pVertexShaderBlob);
 
-	//x axis rotation
-	float xRotation = atan2f(
-		2 * (x * y - z * z),
-		1 - 2 * (y * y + z * z));
-	//y axis rotation
-	float yRotation = asin(2 * (x * z + y * w));
+	Graphics::Device->CreateVertexShader(
+		(*a_pVertexShaderBlob)->GetBufferPointer(), // Pointer to start of binary data
+		(*a_pVertexShaderBlob)->GetBufferSize(),// How big is that data?
+		0,// No classes in this shader
+		a_pVertexShader.GetAddressOf());// ID3D11VertexShader**
+}
 
-	//z axis rotation
-	float zRotation = atan2(
-		2 * (x * w - y * z),
-		1 - 2 * (y * y + w * w)
-	);
+void Helper::LoadPixelShader(
+	ID3DBlob** a_pPixelShaderBlob, Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader)
+{
+	D3DReadFileToBlob(FixPath(L"PixelShader.cso").c_str(), a_pPixelShaderBlob);
 
-	if (std::abs(yRotation) == std::numbers::pi_v<float> / 2) {
-		zRotation = 0;
-		y = atan2(y, x);
-	}
-
-	return DirectX::XMFLOAT3(xRotation, yRotation, zRotation);
+	Graphics::Device->CreatePixelShader(
+		(*a_pPixelShaderBlob)->GetBufferPointer(), // Pointer to start of binary data
+		(*a_pPixelShaderBlob)->GetBufferSize(),// How big is that data?
+		0,// No classes in this shader
+		a_pPixelShader.GetAddressOf());// ID3D11VertexShader**
 }

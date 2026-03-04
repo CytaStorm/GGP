@@ -9,6 +9,7 @@
 #include "BufferStructs.h"
 #include "GameEntity.h"
 #include "Camera.h"
+#include "Material.h"
 
 class Game
 {
@@ -30,10 +31,13 @@ public:
 private:
 
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
-	void LoadShaders();
+	void LoadShaders(
+		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader, 
+		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader);
 	void CreateGeometry();
-
-	void CreateEntities();
+	void CreateEntities(
+		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader, 
+		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader);
 
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
@@ -41,13 +45,11 @@ private:
 	//  - More info here: https://github.com/Microsoft/DirectXTK/wiki/ComPtr
 
 	// Buffers to hold actual geometry data
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVertexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pIndexBuffer;
 
 	// Shaders and shader-related constructs
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pInputLayout;
 
 	// holding data
 	int m_number;
@@ -61,12 +63,15 @@ private:
 	bool m_hideHeader = false;
 
 	//Meshes
-	std::shared_ptr<Mesh> m_triangle;
-	std::shared_ptr<Mesh> m_pentagon;
-	std::shared_ptr<Mesh> m_star;
+	std::shared_ptr<Mesh> m_cube;
+	std::shared_ptr<Mesh> m_cylinder;
+	std::shared_ptr<Mesh> m_helix;
 
 	//GameEntities
 	std::vector<GameEntity> m_entitiesList;
+
+	//Materials
+	std::vector<Material> m_materialsList;
 
 	//Constant buffer for vertex shader
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VSConstantBuffer;

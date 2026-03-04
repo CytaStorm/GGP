@@ -49,13 +49,11 @@ void Transform::SetRotation(DirectX::XMFLOAT4 a_rotation)
 		return;
 	}
 
-	//only update if different, update dirty
 	m_rotation = a_rotation;
 
 
 	//Reset transform, since is setting absolute rotation
-	m_right = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
-	m_up = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+	//reset forward, right and up is recalculated in UpdateTransformDirection
 	m_forward = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
 	
 	UpdateTransformDirection(a_rotation);
@@ -243,18 +241,20 @@ DirectX::XMFLOAT3 Transform::GetForward()
 }
 void Transform::UpdateTransformDirection(DirectX::XMVECTOR a_rotation)
 {
-	DirectX::XMVECTOR right = DirectX::XMLoadFloat3(&m_right);
-	DirectX::XMVECTOR up = DirectX::XMLoadFloat3(&m_up);
+	//DirectX::XMVECTOR right = DirectX::XMLoadFloat3(&m_right);
+	//DirectX::XMVECTOR up = DirectX::XMLoadFloat3(&m_up);
 	DirectX::XMVECTOR forward = DirectX::XMLoadFloat3(&m_forward);
 
-	right = DirectX::XMVector3Rotate(right, a_rotation);
-	up = DirectX::XMVector3Rotate(up, a_rotation);
+	//right = DirectX::XMVector3Rotate(right, a_rotation);
+	//up = DirectX::XMVector3Rotate(up, a_rotation);
 	forward = DirectX::XMVector3Rotate(forward, a_rotation);
 
-	DirectX::XMStoreFloat3(&m_right, right);
-	DirectX::XMStoreFloat3(&m_up, up);
-	DirectX::XMStoreFloat3(&m_forward, forward);
+	//DirectX::XMStoreFloat3(&m_right, right);
+	//DirectX::XMStoreFloat3(&m_up, up);
+	//DirectX::XMMatrixLookToLH(DirectX::XMLoadFloat3(&m_position), forward, DirectX::XMLoadFloat3(&m_up));
 
+	DirectX::XMStoreFloat3(&m_right, DirectX::XMVector3Cross(forward, DirectX::XMLoadFloat3(&m_up)));
+	DirectX::XMStoreFloat3(&m_forward, forward);
 }
 
 

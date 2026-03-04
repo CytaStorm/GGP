@@ -1,9 +1,8 @@
 #pragma once
-#include "Input.h"
-#include "Transform.h"
 #include <numbers>
-#include "Helper.h"
+#include <DirectXMath.h>
 #include "Projection.h"
+#include "Transform.h"
 
 class Camera
 {
@@ -40,7 +39,5 @@ public:
 	void Update(float a_deltaTime);
 
 	Transform GetTransform();
-
-	DirectX::XMFLOAT4 RotationFromForwardRight(DirectX::XMFLOAT3 a_newForward, DirectX::XMFLOAT3 a_newRight);
 };
 

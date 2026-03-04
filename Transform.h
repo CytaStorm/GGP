@@ -3,13 +3,6 @@
 class Transform
 {
 public:
-	DirectX::XMFLOAT3 m_right = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
-	DirectX::XMFLOAT3 m_up = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-	DirectX::XMFLOAT3 m_forward = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-
-	DirectX::XMFLOAT4X4 m_worldMatrix;
-	DirectX::XMFLOAT4X4 m_worldInverseTransposeMatrix;
-
 	/// <summary>
 	/// Do we need to update the matrix?
 	/// </summary>
@@ -49,9 +42,14 @@ public:
 	DirectX::XMFLOAT3 GetUp();
 	DirectX::XMFLOAT3 GetForward();
 
-	
-
 private:
+	DirectX::XMFLOAT3 m_right = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
+	DirectX::XMFLOAT3 m_up = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+	DirectX::XMFLOAT3 m_forward = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+
+	DirectX::XMFLOAT4X4 m_worldMatrix;
+	DirectX::XMFLOAT4X4 m_worldInverseTransposeMatrix;
+
 	DirectX::XMFLOAT3 m_position;
 	DirectX::XMFLOAT4 m_rotation;
 	DirectX::XMFLOAT3 m_scale;

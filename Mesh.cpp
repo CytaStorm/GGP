@@ -3,20 +3,16 @@
 #include <DirectXMath.h>
 #include "Vertex.h"
 #include "Graphics.h"
+#include <fstream>
+#include <stdexcept>
+#include <unordered_map>
+
 
 using namespace DirectX;
 
-Mesh::Mesh(Vertex a_vertices[], int a_indices[], int a_verticesLength, int a_indicesLength)
+void Mesh::CreateVertexBuffer(int a_vertexCount, const Vertex* a_pFirstVertex)
 {
-	m_vertexBufferCount = a_verticesLength;
-	m_indexBufferCount = a_indicesLength;
-
-	// Create some temporary variables to represent colors
-	// - Not necessary, just makes things more readable
-	XMFLOAT4 red = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4 green = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
-	XMFLOAT4 blue = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
-
+	m_vertexBufferCount = a_vertexCount;
 	// Create a VERTEX BUFFER
 	// - This holds the vertex data of triangles for a single object
 	// - This buffer is created on the GPU, which is where the data needs to
@@ -27,7 +23,7 @@ Mesh::Mesh(Vertex a_vertices[], int a_indices[], int a_verticesLength, int a_ind
 		//  - After the buffer is created, this description variable is unnecessary
 		D3D11_BUFFER_DESC vbd = {};
 		vbd.Usage = D3D11_USAGE_IMMUTABLE;	// Will NEVER change
-		vbd.ByteWidth = sizeof(Vertex) * a_verticesLength;       // 3 = number of vertices in the buffer
+		vbd.ByteWidth = sizeof(Vertex) * a_vertexCount;       // 3 = number of vertices in the buffer
 		vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER; // Tells Direct3D this is a vertex buffer
 		vbd.CPUAccessFlags = 0;	// Note: We cannot access the data from C++ (this is good)
 		vbd.MiscFlags = 0;
@@ -37,13 +33,17 @@ Mesh::Mesh(Vertex a_vertices[], int a_indices[], int a_verticesLength, int a_ind
 		// - This is how we initially fill the buffer with data
 		// - Essentially, we're specifying a pointer to the data to copy
 		D3D11_SUBRESOURCE_DATA initialVertexData = {};
-		initialVertexData.pSysMem = a_vertices; // pSysMem = Pointer to System Memory
+		initialVertexData.pSysMem = a_pFirstVertex; // pSysMem = Pointer to System Memory
 
 		// Actually create the buffer on the GPU with the initial data
 		// - Once we do this, we'll NEVER CHANGE DATA IN THE BUFFER AGAIN
 		Graphics::Device->CreateBuffer(&vbd, &initialVertexData, m_vertexBuffer.GetAddressOf());
 	}
+}
 
+void Mesh::CreateIndexBuffer(int a_indexCount, const UINT* a_pFirstIndex)
+{
+	m_indexBufferCount = a_indexCount;
 	// Create an INDEX BUFFER
 	// - This holds indices to elements in the vertex buffer
 	// - This is most useful when vertices are shared among neighboring triangles
@@ -55,7 +55,7 @@ Mesh::Mesh(Vertex a_vertices[], int a_indices[], int a_verticesLength, int a_ind
 		//  - Bind Flag (used as an index buffer instead of a vertex buffer) 
 		D3D11_BUFFER_DESC ibd = {};
 		ibd.Usage = D3D11_USAGE_IMMUTABLE;	// Will NEVER change
-		ibd.ByteWidth = sizeof(unsigned int) * a_indicesLength;	// 3 = number of indices in the buffer
+		ibd.ByteWidth = sizeof(unsigned int) * a_indexCount;	// 3 = number of indices in the buffer
 		ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;	// Tells Direct3D this is an index buffer
 		ibd.CPUAccessFlags = 0;	// Note: We cannot access the data from C++ (this is good)
 		ibd.MiscFlags = 0;
@@ -63,13 +63,309 @@ Mesh::Mesh(Vertex a_vertices[], int a_indices[], int a_verticesLength, int a_ind
 
 		// Specify the initial data for this buffer, similar to above
 		D3D11_SUBRESOURCE_DATA initialIndexData = {};
-		initialIndexData.pSysMem = a_indices; // pSysMem = Pointer to System Memory
+		initialIndexData.pSysMem = a_pFirstIndex; // pSysMem = Pointer to System Memory
 
 		// Actually create the buffer with the initial data
 		// - Once we do this, we'll NEVER CHANGE THE BUFFER AGAIN
 		Graphics::Device->CreateBuffer(&ibd, &initialIndexData, m_indexBuffer.GetAddressOf());
 	}
+}
 
+Mesh::Mesh(Vertex a_vertices[], UINT a_indices[], int a_verticesLength, int a_indicesLength)
+{
+	m_vertexBufferCount = a_verticesLength;
+	m_indexBufferCount = a_indicesLength;
+
+	// Create some temporary variables to represent colors
+	// - Not necessary, just makes things more readable
+	XMFLOAT4 red = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4 green = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+	XMFLOAT4 blue = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
+
+
+	CreateVertexBuffer(a_verticesLength, &a_vertices[0]);
+	CreateIndexBuffer(a_indicesLength, &a_indices[0]);
+}
+
+Mesh::Mesh(const char* a_fileName)
+{
+
+// Author: Chris Cascioli
+// Latest Revision: 02/2026
+// Purpose: Basic .OBJ 3D model loading, supporting positions, uvs and normals
+// 
+// - You are allowed to directly copy/paste this into your code base
+//   for assignments, given that you clearly cite that this is not
+//   code of your own design.
+
+// *************************************
+//      IMPLEMENTATION NOTES (1/2)
+//
+//  - You'll need the following includes:
+//      #include <fstream>
+//      #include <vector>
+//      #include <stdexcept>
+//      #include <unordered_map>
+//
+//  - You will need to integrate
+//      this code into a function or
+//      constructor of your own making
+//
+//  - There is MORE TO DO after pasting 
+//      this code in - see the bottom for
+//      what to do *after* including 
+//      this code in your mesh class
+//
+// *************************************
+
+// File input object
+	std::ifstream obj(a_fileName);
+
+	// Check for successful open
+	if (!obj.is_open())
+		throw std::invalid_argument("Error opening file: Invalid file path or file is inaccessible");
+
+	// Variables used while reading the file
+	std::vector<XMFLOAT3> positions;	// Positions from the file
+	std::vector<XMFLOAT3> normals;		// Normals from the file
+	std::vector<XMFLOAT2> uvs;		// UVs from the file
+	std::vector<Vertex> vertsFromFile;	// Verts from file (including duplicates)
+	std::vector<Vertex> finalVertices;	// Final, de-duplicated verts
+	std::vector<UINT> finalIndices;		// Indices for final verts
+	char chars[100];			// String for line reading
+
+	// Still have data left?
+	while (obj.good())
+	{
+		// Get the line (100 characters should be more than enough)
+		obj.getline(chars, 100);
+
+		// Check the type of line
+		if (chars[0] == 'v' && chars[1] == 'n')
+		{
+			// Read the 3 numbers directly into an XMFLOAT3
+			XMFLOAT3 norm{};
+			sscanf_s(
+				chars,
+				"vn %f %f %f",
+				&norm.x, &norm.y, &norm.z);
+
+			// Add to the list of normals
+			normals.push_back(norm);
+		}
+		else if (chars[0] == 'v' && chars[1] == 't')
+		{
+			// Read the 2 numbers directly into an XMFLOAT2
+			XMFLOAT2 uv{};
+			sscanf_s(
+				chars,
+				"vt %f %f",
+				&uv.x, &uv.y);
+
+			// Add to the list of uv's
+			uvs.push_back(uv);
+		}
+		else if (chars[0] == 'v')
+		{
+			// Read the 3 numbers directly into an XMFLOAT3
+			XMFLOAT3 pos{};
+			sscanf_s(
+				chars,
+				"v %f %f %f",
+				&pos.x, &pos.y, &pos.z);
+
+			// Add to the positions
+			positions.push_back(pos);
+		}
+		else if (chars[0] == 'f')
+		{
+			// Read the face indices into an array
+			// NOTE: This assumes the given obj file contains
+			//  vertex positions, uv coordinates AND normals.
+			unsigned int i[12]{};
+			int numbersRead = sscanf_s(
+				chars,
+				"f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d",
+				&i[0], &i[1], &i[2],
+				&i[3], &i[4], &i[5],
+				&i[6], &i[7], &i[8],
+				&i[9], &i[10], &i[11]);
+
+			// If we only got the first number, chances are the OBJ
+			// file has no UV coordinates.  This isn't great, but we
+			// still want to load the model without crashing, so we
+			// need to re-read a different pattern (in which we assume
+			// there are no UVs denoted for any of the vertices)
+			if (numbersRead == 1)
+			{
+				// Re-read with a different pattern
+				numbersRead = sscanf_s(
+					chars,
+					"f %d//%d %d//%d %d//%d %d//%d",
+					&i[0], &i[2],
+					&i[3], &i[5],
+					&i[6], &i[8],
+					&i[9], &i[11]);
+
+				// The following indices are where the UVs should 
+				// have been, so give them a valid value
+				i[1] = 1;
+				i[4] = 1;
+				i[7] = 1;
+				i[10] = 1;
+
+				// If we have no UVs, create a single UV coordinate
+				// that will be used for all vertices
+				if (uvs.size() == 0)
+					uvs.push_back(XMFLOAT2(0, 0));
+			}
+
+			// - Create the verts by looking up
+			//    corresponding data from vectors
+			// - OBJ File indices are 1-based, so
+			//    they need to be adusted
+			Vertex v1{};
+			v1.m_position = positions[max(i[0] - 1, 0)];
+			v1.m_uv = uvs[max(i[1] - 1, 0)];
+			v1.m_normal = normals[max(i[2] - 1, 0)];
+
+			Vertex v2{};
+			v2.m_position = positions[max(i[3] - 1, 0)];
+			v2.m_uv = uvs[max(i[4] - 1, 0)];
+			v2.m_normal = normals[max(i[5] - 1, 0)];
+
+			Vertex v3{};
+			v3.m_position = positions[max(i[6] - 1, 0)];
+			v3.m_uv = uvs[max(i[7] - 1, 0)];
+			v3.m_normal = normals[max(i[8] - 1, 0)];
+
+			// The model is most likely in a right-handed space,
+			// especially if it came from Maya.  We probably want 
+			// to convert to a left-handed space.  This means we 
+			// need to:
+			//  - Invert the Z position
+			//  - Invert the normal's Z
+			//  - Flip the winding order
+			// We also need to flip the UV coordinate since Direct3D
+			// defines (0,0) as the top left of the texture, and many
+			// 3D modeling packages use the bottom left as (0,0)
+
+			// Flip the UV's since they're probably "upside down"
+			v1.m_uv.y = 1.0f - v1.m_uv.y;
+			v2.m_uv.y = 1.0f - v2.m_uv.y;
+			v3.m_uv.y = 1.0f - v3.m_uv.y;
+
+			// Flip Z (LH vs. RH)
+			v1.m_position.z *= -1.0f;
+			v2.m_position.z *= -1.0f;
+			v3.m_position.z *= -1.0f;
+
+			// Flip normal's Z
+			v1.m_normal.z *= -1.0f;
+			v2.m_normal.z *= -1.0f;
+			v3.m_normal.z *= -1.0f;
+
+			// Add the verts to the vector (flipping the winding order)
+			vertsFromFile.push_back(v1);
+			vertsFromFile.push_back(v3);
+			vertsFromFile.push_back(v2);
+
+			// Was there a 4th face?
+			// - 12 numbers read means 4 faces WITH uv's
+			// - 8 numbers read means 4 faces WITHOUT uv's
+			if (numbersRead == 12 || numbersRead == 8)
+			{
+				// Make the last vertex
+				Vertex v4{};
+				v4.m_position = positions[max(i[9] - 1, 0)];
+				v4.m_uv = uvs[max(i[10] - 1, 0)];
+				v4.m_normal = normals[max(i[11] - 1, 0)];
+
+				// Flip the UV, Z pos and normal's Z
+				v4.m_uv.y = 1.0f - v4.m_uv.y;
+				v4.m_position.z *= -1.0f;
+				v4.m_normal.z *= -1.0f;
+
+				// Add a whole triangle (flipping the winding order)
+				vertsFromFile.push_back(v1);
+				vertsFromFile.push_back(v4);
+				vertsFromFile.push_back(v3);
+			}
+		}
+	}
+
+	// We'll use a hash table (unordered_map) to determine
+	// if any of the vertices are duplicates
+	std::unordered_map<std::string, unsigned int> vertMap;
+	for (auto& v : vertsFromFile)
+	{
+		// Create a "unique" representation of the vertex (its key)
+		// Note: This isn't a super efficient method, but since strings
+		//       inherently work with unordered_maps, this saves
+		//       us from having to write our own custom hash function
+		std::string vStr =
+			std::to_string(v.m_position.x) +
+			std::to_string(v.m_position.y) +
+			std::to_string(v.m_position.z) +
+			std::to_string(v.m_normal.x) +
+			std::to_string(v.m_normal.y) +
+			std::to_string(v.m_normal.z) +
+			std::to_string(v.m_uv.x) +
+			std::to_string(v.m_uv.y);
+
+		// Prepare the index for this vertex and
+		// search for the vertex in the hash table
+		unsigned int index = -1;
+		auto pair = vertMap.find(vStr);
+		if (pair == vertMap.end())
+		{
+			// Vertex not found, so this
+			// is the first time we've seen it
+			index = (unsigned int)finalVertices.size();
+			finalVertices.push_back(v);
+			vertMap.insert({ vStr, index });
+		}
+		else
+		{
+			// Vert already exists, just
+			// grab its index
+			index = pair->second;
+		}
+
+		// Either way, save the index
+		finalIndices.push_back(index);
+	}
+
+	// Close the file
+	obj.close();
+
+	// NEXT: Create the actual buffers!
+	CreateVertexBuffer(finalVertices.size(), &finalVertices[0]);
+	CreateIndexBuffer(finalIndices.size(), &finalIndices[0]);
+
+	// *************************************
+	//      IMPLEMENTATION NOTES (2/2)
+	//
+	// - At this point, "finalVertices" is a
+	//     std::vector<Vertex>, and can be used
+	//     to create your mesh's vertex buffer
+	//
+	// - NOTE: Use &finalVertices[0] for the address
+	//     of the first vertex, NOT JUST &finalVertices
+	//
+	// - The vector "finalIndices" is similar:
+	//     a std::vector<unsigned int> that
+	//     can be used to create the index 
+	//     buffer (again, &finalIndices[0] is 
+	//     the address of the first integer)
+	//
+	// - Make sure your mesh class actually SAVES
+	//     the number of vertices and indices, or
+	//     drawing may have unintended problems.
+	//     - finalVertices.size() is the number of vertices
+	//     - finalIndices.size() is the number of indices
+	//
+	// *************************************
 }
 
 Mesh::~Mesh()

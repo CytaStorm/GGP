@@ -5,7 +5,8 @@
 #include "PathHelpers.h"
 #include "Window.h"
 #include "BufferStructs.h"
-
+#include "Camera.h"
+#include "Projection.h"
 #include <DirectXMath.h>
 
 //ImGui includes
@@ -16,9 +17,11 @@
 // Needed for a helper function to load pre-compiled shader files
 #pragma comment(lib, "d3dcompiler.lib")
 #include <d3dcompiler.h>
-#include "Mesh.h"
 #include <vector>
 #include <memory>
+
+//Shader
+#include "Helper.h"
 
 // For the DirectX Math library
 using namespace DirectX;
@@ -48,9 +51,12 @@ Game::Game()
 	// Helper methods for loading shaders, creating some basic
 	// geometry to draw and some simple camera matrices.
 	//  - You'll be expanding and/or replacing these later
-	LoadShaders();
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
+
+	LoadShaders(vertexShader, pixelShader);
 	CreateGeometry();
-	CreateEntities();
+	CreateEntities(vertexShader, pixelShader);
 
 	// Set initial graphics API state
 	//  - These settings persist until we change them
@@ -65,13 +71,7 @@ Game::Game()
 		// Ensure the pipeline knows how to interpret all the numbers stored in
 		// the vertex buffer. For this course, all of your vertices will probably
 		// have the same layout, so we can just set this once at startup.
-		Graphics::Context->IASetInputLayout(inputLayout.Get());
-
-		// Set the active vertex and pixel shaders
-		//  - Once you start applying different shaders to different objects,
-		//    these calls will need to happen multiple times per frame
-		Graphics::Context->VSSetShader(vertexShader.Get(), 0, 0);
-		Graphics::Context->PSSetShader(pixelShader.Get(), 0, 0);
+		Graphics::Context->IASetInputLayout(m_pInputLayout.Get());
 	}
 
 	m_number = 1;
@@ -100,67 +100,40 @@ Game::~Game()
 //    be verified against vertex shader byte code
 // - We'll have that byte code already loaded below
 // --------------------------------------------------------
-void Game::LoadShaders()
+void Game::LoadShaders(
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader, Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader)
 {
-	// BLOBs (or Binary Large OBjects) for reading raw data from external files
-	// - This is a simplified way of handling big chunks of external data
-	// - Literally just a big array of bytes read from a file
-	ID3DBlob* pixelShaderBlob;
 	ID3DBlob* vertexShaderBlob;
+	ID3DBlob* pixelShaderBlob;
 
-	// Loading shaders
-	//  - Visual Studio will compile our shaders at build time
-	//  - They are saved as .cso (Compiled Shader Object) files
-	//  - We need to load them when the application starts
-	{
-		// Read our compiled shader code files into blobs
-		// - Essentially just "open the file and plop its contents here"
-		// - Uses the custom FixPath() helper from Helpers.h to ensure relative paths
-		// - Note the "L" before the string - this tells the compiler the string uses wide characters
-		D3DReadFileToBlob(FixPath(L"PixelShader.cso").c_str(), &pixelShaderBlob);
-		D3DReadFileToBlob(FixPath(L"VertexShader.cso").c_str(), &vertexShaderBlob);
+	Helper::LoadVertexShader(&vertexShaderBlob, a_pVertexShader);
+	Helper::LoadPixelShader(&pixelShaderBlob, a_pPixelShader);
+	
+	//input layout
+	D3D11_INPUT_ELEMENT_DESC inputElements[3] = {};
 
-		// Create the actual Direct3D shaders on the GPU
-		Graphics::Device->CreatePixelShader(
-			pixelShaderBlob->GetBufferPointer(),	// Pointer to blob's contents
-			pixelShaderBlob->GetBufferSize(),		// How big is that data?
-			0,										// No classes in this shader
-			pixelShader.GetAddressOf());			// Address of the ID3D11PixelShader pointer
+	// Set up the first element - a position, which is 3 float values
+	inputElements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;				// Most formats are described as color channels; really it just means "Three 32-bit floats"
+	inputElements[0].SemanticName = "POSITION";							// This is "POSITION" - needs to match the semantics in our vertex shader input!
+	inputElements[0].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	// How far into the vertex is this?  Assume it's after the previous element
 
-		Graphics::Device->CreateVertexShader(
-			vertexShaderBlob->GetBufferPointer(),	// Get a pointer to the blob's contents
-			vertexShaderBlob->GetBufferSize(),		// How big is that data?
-			0,										// No classes in this shader
-			vertexShader.GetAddressOf());			// The address of the ID3D11VertexShader pointer
-	}
+	//set up uv coords
+	inputElements[1].Format = DXGI_FORMAT_R32G32_FLOAT;		
+	inputElements[1].SemanticName = "TEXCOORD";							
+	inputElements[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	
 
-	// Create an input layout 
-	//  - This describes the layout of data sent to a vertex shader
-	//  - In other words, it describes how to interpret data (numbers) in a vertex buffer
-	//  - Doing this NOW because it requires a vertex shader's byte code to verify against!
-	//  - Luckily, we already have that loaded (the vertex shader blob above)
-	{
-		D3D11_INPUT_ELEMENT_DESC inputElements[2] = {};
+	//set up normal
+	inputElements[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;		
+	inputElements[2].SemanticName = "NORMAL";							
+	inputElements[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	
 
-		// Set up the first element - a position, which is 3 float values
-		inputElements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;				// Most formats are described as color channels; really it just means "Three 32-bit floats"
-		inputElements[0].SemanticName = "POSITION";							// This is "POSITION" - needs to match the semantics in our vertex shader input!
-		inputElements[0].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	// How far into the vertex is this?  Assume it's after the previous element
-
-		// Set up the second element - a color, which is 4 more float values
-		inputElements[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;			// 4x 32-bit floats
-		inputElements[1].SemanticName = "COLOR";							// Match our vertex shader input!
-		inputElements[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	// After the previous element
-
-		// Create the input layout, verifying our description against actual shader code
-		Graphics::Device->CreateInputLayout(
-			inputElements,							// An array of descriptions
-			2,										// How many elements in that array?
-			vertexShaderBlob->GetBufferPointer(),	// Pointer to the code of a shader that uses this layout
-			vertexShaderBlob->GetBufferSize(),		// Size of the shader code that uses this layout
-			inputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
-	}
-
+	// Create the input layout, verifying our description against actual shader code
+	Graphics::Device->CreateInputLayout(
+		inputElements,							// An array of descriptions
+		3,										// How many elements in that array?
+		vertexShaderBlob->GetBufferPointer(),	// Pointer to the code of a shader that uses this layout
+		vertexShaderBlob->GetBufferSize(),		// Size of the shader code that uses this layout
+		m_pInputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
 
 	//Create ID3D11Buffer
 	D3D11_BUFFER_DESC cbDesc = {};
@@ -181,111 +154,14 @@ void Game::LoadShaders()
 // --------------------------------------------------------
 void Game::CreateGeometry()
 {
-	XMFLOAT4 red = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4 green = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
-	XMFLOAT4 blue = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
-
-	std::vector<std::shared_ptr<Mesh>> Meshes;
-	std::shared_ptr<Mesh> triangle;
-	std::shared_ptr<Mesh> pentagon;
-	std::shared_ptr<Mesh> star;
-
-	Meshes.push_back(triangle);
-	Meshes.push_back(pentagon);
-	Meshes.push_back(star);
-
-	//Triangle
-	Vertex trianglePoints[] = {
-		{ XMFLOAT3(+0.25f, +0.25f, +0.0f), red },
-		{ XMFLOAT3(+0.5f, -0.25f, +0.0f), blue },
-		{ XMFLOAT3(+0.0f, -0.25f, +0.0f), green },
-	};
-	int triangleIndices[] = { 0, 1, 2 };
-	Game::m_triangle = std::make_shared<Mesh>(trianglePoints, triangleIndices, 3, 3);
-
-	//Pentagon
-	Vertex pentagonPoints[] = {
-		{ XMFLOAT3(-0.5f, -0.2f, +0.0f), red },
-		{ XMFLOAT3(-0.3f, -0.2f, +0.0f), blue },
-		{ XMFLOAT3(-0.4f, -0.4f, +0.0f), green },
-
-		{ XMFLOAT3(-0.3f, -0.2f, +0.0f), blue },
-		{ XMFLOAT3(-0.2f, -0.5f, +0.0f), red },
-		{ XMFLOAT3(-0.4f, -0.4f, +0.0f), green },
-
-		{ XMFLOAT3(-0.4f, -0.4f, +0.0f), green },
-		{ XMFLOAT3(-0.2f, -0.5f, +0.0f), red },
-		{ XMFLOAT3(-0.4f, -0.7f, +0.0f), blue },
-
-		{ XMFLOAT3(-0.4f, -0.4f, +0.0f), green },
-		{ XMFLOAT3(-0.4f, -0.7f, +0.0f), blue },
-		{ XMFLOAT3(-0.8f, -0.4f, +0.0f), red },
-
-		{ XMFLOAT3(-0.5f, -0.2f, +0.0f), red },
-		{ XMFLOAT3(-0.4f, -0.4f, +0.0f), green },
-		{ XMFLOAT3(-0.8f, -0.4f, +0.0f), blue }
-	};
-
-	int pentagonIndices[15];
-
-	for (int i = 0; i < 15; i++) {
-		pentagonIndices[i] = i;
-	}
-
-	Game::m_pentagon = std::make_shared<Mesh>(pentagonPoints, pentagonIndices, 15, 15);
-
-	//Star
-	Vertex starPoints[] = {
-		{ XMFLOAT3(-0.5f, +0.2f, +0.0f), red },
-		{ XMFLOAT3(-0.45f, +0.1f, +0.0f), blue },
-		{ XMFLOAT3(-0.5f, +0.0f, +0.0f), green },
-
-		{ XMFLOAT3(-0.45f, +0.1f, +0.0f), blue },
-		{ XMFLOAT3(-0.4f, +0.1f, +0.0f), red },
-		{ XMFLOAT3(-0.5, +0.0f, +0.0f), green },
-
-		{ XMFLOAT3(-0.4f, +0.1f, +0.0f), red },
-		{ XMFLOAT3(-0.43f, -0.0f, +0.0f), red },
-		{ XMFLOAT3(-0.5, +0.0f, +0.0f), green },
-
-		{ XMFLOAT3(-0.5, +0.0f, +0.0f), green },
-		{ XMFLOAT3(-0.43f, -0.0f, +0.0f), red },
-		{ XMFLOAT3(-0.4f, -0.1f, +0.0f), blue },
-
-		{ XMFLOAT3(-0.5, +0.0f, +0.0f), green },
-		{ XMFLOAT3(-0.4f, -0.1f, +0.0f), blue },
-		{ XMFLOAT3(-0.5f, -0.05f, +0.0f), red },
-
-		{ XMFLOAT3(-0.5f, +0.00f, +0.0f), green },
-		{ XMFLOAT3(-0.5f, -0.05f, +0.0f), blue },
-		{ XMFLOAT3(-0.6f, -0.13f, +0.0f), red },
-
-		{ XMFLOAT3(-0.5f, +0.00f, +0.0f), green },
-		{ XMFLOAT3(-0.6f, -0.13f, +0.0f), red },
-		{ XMFLOAT3(-0.52f, +0.0f, +0.0f), green },
-
-		{ XMFLOAT3(-0.65f, +0.1f, +0.0f), red },
-		{ XMFLOAT3(-0.5f, +0.00f, +0.0f), blue },
-		{ XMFLOAT3(-0.52f, +0.0f, +0.0f), green },
-
-		{ XMFLOAT3(-0.65f, +0.1f, +0.0f), red },
-		{ XMFLOAT3(-0.52f, +0.05f, +0.0f), blue },
-		{ XMFLOAT3(-0.5f, +0.00f, +0.0f), green },
-
-		{ XMFLOAT3(-0.52f, +0.05f, +0.0f), blue },
-		{ XMFLOAT3(-0.5f, +0.2f, +0.0f), red },
-		{ XMFLOAT3(-0.5f, +0.0f, +0.0f), green },
-	};
-
-	int starIndices[30];
-	for (int i = 0; i < 30; i++) {
-		starIndices[i] = i;
-	}
-
-	Game::m_star = std::make_shared<Mesh>(starPoints, starIndices, 30, 30);
+	m_cube = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/cube.obj").c_str());
+	m_cylinder = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/cylinder.obj").c_str());
+	m_helix = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/helix.obj").c_str());
 }
 
-void Game::CreateEntities() {
+void Game::CreateEntities(
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader, Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader)
+{
 	//Create Cameras
 	std::shared_ptr cameraPerspective = std::make_shared<Camera>(
 		Window::AspectRatio(),
@@ -316,15 +192,27 @@ void Game::CreateEntities() {
 
 	m_activeCamera = cameraOrthographic;
 
-	//create game entities
-	m_entitiesList.push_back(GameEntity(m_triangle));
-	m_entitiesList.push_back(GameEntity(m_pentagon));
-	m_entitiesList.push_back(GameEntity(m_star));
-	m_entitiesList.push_back(GameEntity(m_triangle));
-	m_entitiesList.push_back(GameEntity(m_pentagon));
+	//create game entities and their materials
+	std::shared_ptr<Material> red = std::make_shared<Material>(
+		DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),
+		a_pVertexShader,
+		a_pPixelShader);
+	std::shared_ptr<Material> blue = std::make_shared<Material>(
+		DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),
+		a_pVertexShader,
+		a_pPixelShader);
+	std::shared_ptr<Material> green = std::make_shared<Material>(
+		DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f),
+		a_pVertexShader,
+		a_pPixelShader);
 
-	m_entitiesList[3].GetTransform().MoveAbsolute(0.2f, 0.2f, -0.5f);
-	m_entitiesList[4].GetTransform().MoveAbsolute(0.2f, 0.2f, 1.0f);
+	m_entitiesList.push_back(GameEntity(m_cube, red));
+	m_entitiesList.push_back(GameEntity(m_cylinder, blue));
+	m_entitiesList.push_back(GameEntity(m_helix, green));
+
+	m_entitiesList[0].GetTransform().MoveAbsolute(0.0f, 0.0f, 10.0f);
+	m_entitiesList[1].GetTransform().MoveAbsolute(3.0f, 0.0f, 10.0f);
+	m_entitiesList[2].GetTransform().MoveAbsolute(6.0f, 0.0f, 10.0f);
 }
 
 
@@ -461,6 +349,10 @@ void Game::BuildUI() {
 		}
 		DirectX::XMFLOAT3 forwards = m_activeCamera->GetTransform().GetForward();
 		if (ImGui::DragFloat3("Forwards", &forwards.x, 0.1f, 0.1f, 2.0f)) {
+		}
+
+		DirectX::XMFLOAT3 right = m_activeCamera->GetTransform().GetRight();
+		if (ImGui::DragFloat3("Forwards", &right.x, 0.1f, 0.1f, 2.0f)) {
 		}
 		ImGui::TreePop();
 	};

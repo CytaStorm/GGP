@@ -1,9 +1,13 @@
 #include "GameEntity.h"
+#include <wrl/client.h>
+#include "BufferStructs.h"
+#include "Camera.h"
 
-GameEntity::GameEntity(std::shared_ptr<Mesh> a_meshPtr)
+GameEntity::GameEntity(std::shared_ptr<Mesh> a_pMesh, std::shared_ptr<Material> a_pMaterial)
 {
 	m_transform = Transform();
-	m_mesh = a_meshPtr;
+	m_pMesh = a_pMesh;
+	m_pMaterial = a_pMaterial;
 }
 
 GameEntity::~GameEntity()
@@ -13,7 +17,7 @@ GameEntity::~GameEntity()
 
 std::shared_ptr<Mesh> GameEntity::GetMesh()
 {
-	return m_mesh;
+	return m_pMesh;
 }
 
 Transform& GameEntity::GetTransform()
@@ -23,6 +27,10 @@ Transform& GameEntity::GetTransform()
 
 void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer, std::shared_ptr<Camera> a_camera)
 {
+
+	Graphics::Context->VSSetShader(m_pMaterial->GetVertexShader().Get(), 0, 0);
+	Graphics::Context->PSSetShader(m_pMaterial->GetPixelShader().Get(), 0, 0);
+	m_vsData.m_colorTint = m_pMaterial->GetColor();
 	//update struct matrix;
 	m_transform.CalculateWorldMatrix();
 	m_vsData.m_worldMatrix = m_transform.GetWorldMatrix();
@@ -36,10 +44,20 @@ void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer, s
 
 	Graphics::Context->Unmap(a_VSConstantBuffer.Get(), 0);
 
-	m_mesh->Draw();
+	m_pMesh->Draw();
 }
 
 void GameEntity::ChangeTint(DirectX::XMFLOAT4 a_newTint)
 {
 	m_vsData.m_colorTint = a_newTint;
+}
+
+std::shared_ptr<Material> GameEntity::GetMaterial()
+{
+	return m_pMaterial;
+}
+
+void GameEntity::SetMaterial(std::shared_ptr<Material> a_pMaterial)
+{
+	m_pMaterial = a_pMaterial;
 }

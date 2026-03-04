@@ -1,8 +1,12 @@
 #pragma once
-#include <DirectXMath.h>
-#include <numbers>
+#include <wrl/client.h>
+#include <d3d11.h>
+
 struct Helper
 {
-	static DirectX::XMFLOAT3 QuaternionToEuler(DirectX::XMFLOAT4 a_quaternion);
+	void static LoadVertexShader(
+		ID3DBlob** a_pVertexShaderBlob, Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader);
+	void static LoadPixelShader(
+		ID3DBlob** a_pPixelShaderBlob, Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader);
 };
 
