@@ -1,7 +1,6 @@
 #include "Camera.h"
 #include <algorithm>
 #include "Input.h"
-#include "Helper.h"
 
 Camera::Camera(
 	float a_aspectRatio, 

@@ -6,20 +6,20 @@
 class Material
 {
 private:
-	DirectX::XMFLOAT4 m_color;
+	DirectX::XMFLOAT4 m_colorTint;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_pVertexShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPixelShader;
 
 public:
 	Material(
-		DirectX::XMFLOAT4 a_color,
+		DirectX::XMFLOAT4 a_colorTint,
 		Microsoft::WRL::ComPtr<ID3D11VertexShader> a_pVertexShader,
 		Microsoft::WRL::ComPtr<ID3D11PixelShader> a_pPixelShader);
 
 	~Material();
 
 	//Getters
-	DirectX::XMFLOAT4 GetColor();
+	DirectX::XMFLOAT4 GetColorTint();
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> GetVertexShader();
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> GetPixelShader();
 

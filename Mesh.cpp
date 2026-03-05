@@ -10,7 +10,7 @@
 
 using namespace DirectX;
 
-void Mesh::CreateVertexBuffer(int a_vertexCount, const Vertex* a_pFirstVertex)
+void Mesh::CreateVertexBuffer(UINT a_vertexCount, const Vertex* a_pFirstVertex)
 {
 	m_vertexBufferCount = a_vertexCount;
 	// Create a VERTEX BUFFER
@@ -41,7 +41,7 @@ void Mesh::CreateVertexBuffer(int a_vertexCount, const Vertex* a_pFirstVertex)
 	}
 }
 
-void Mesh::CreateIndexBuffer(int a_indexCount, const UINT* a_pFirstIndex)
+void Mesh::CreateIndexBuffer(UINT a_indexCount, const UINT* a_pFirstIndex)
 {
 	m_indexBufferCount = a_indexCount;
 	// Create an INDEX BUFFER
@@ -340,8 +340,8 @@ Mesh::Mesh(const char* a_fileName)
 	obj.close();
 
 	// NEXT: Create the actual buffers!
-	CreateVertexBuffer(finalVertices.size(), &finalVertices[0]);
-	CreateIndexBuffer(finalIndices.size(), &finalIndices[0]);
+	CreateVertexBuffer(static_cast<UINT>(finalVertices.size()), &finalVertices[0]);
+	CreateIndexBuffer(static_cast<UINT>(finalIndices.size()), &finalIndices[0]);
 
 	// *************************************
 	//      IMPLEMENTATION NOTES (2/2)

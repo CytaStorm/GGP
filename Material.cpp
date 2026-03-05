@@ -12,7 +12,7 @@ Material::Material(
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> a_pVertexShader,
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> a_pPixelShader)
 {
-	m_color = a_color;
+	m_colorTint = a_color;
 	m_pVertexShader = a_pVertexShader;
 	m_pPixelShader = a_pPixelShader;
 }
@@ -21,9 +21,9 @@ Material::~Material()
 {
 }
 
-DirectX::XMFLOAT4 Material::GetColor()
+DirectX::XMFLOAT4 Material::GetColorTint()
 {
-	return m_color;
+	return m_colorTint;
 }
 
 Microsoft::WRL::ComPtr<ID3D11VertexShader> Material::GetVertexShader()
@@ -38,7 +38,7 @@ Microsoft::WRL::ComPtr<ID3D11PixelShader> Material::GetPixelShader()
 
 void Material::SetColor(DirectX::XMFLOAT4 a_color)
 {
-	m_color = a_color;
+	m_colorTint = a_color;
 }
 
 void Material::SetVertexShader(Microsoft::WRL::ComPtr<ID3D11VertexShader> a_pVertexShader)

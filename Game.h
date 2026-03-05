@@ -31,9 +31,19 @@ public:
 private:
 
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
-	void LoadShaders(
-		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader, 
-		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader);
+	void LoadVertexShader(
+		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
+		Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pVertexShaderConstantBuffer,
+		const std::wstring a_fileName);
+
+	//templated function in case other sized constant buffer structs are to be used
+	template <typename PSConstantBufferStruct>
+	void LoadPixelShader(
+		PSConstantBufferStruct value,
+		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader,
+		Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pPixelShaderConstantBuffer,
+		const std::wstring a_fileName);
+
 	void CreateGeometry();
 	void CreateEntities(
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader, 
@@ -49,7 +59,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pIndexBuffer;
 
 	// Shaders and shader-related constructs
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pInputLayout;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pVSInputLayout;
 
 	// holding data
 	int m_number;
@@ -63,9 +73,9 @@ private:
 	bool m_hideHeader = false;
 
 	//Meshes
-	std::shared_ptr<Mesh> m_cube;
-	std::shared_ptr<Mesh> m_cylinder;
-	std::shared_ptr<Mesh> m_helix;
+	std::shared_ptr<Mesh> m_pCube;
+	std::shared_ptr<Mesh> m_pCylinder;
+	std::shared_ptr<Mesh> m_pHelix;
 
 	//GameEntities
 	std::vector<GameEntity> m_entitiesList;
@@ -74,10 +84,11 @@ private:
 	std::vector<Material> m_materialsList;
 
 	//Constant buffer for vertex shader
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_VSConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVSConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pPSConstantBuffer;
 
 	//Cameras
 	std::vector<std::shared_ptr<Camera>> m_camerasList;
-	std::shared_ptr<Camera> m_activeCamera;
+	std::shared_ptr<Camera> m_pActiveCamera;
 };
 

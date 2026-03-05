@@ -13,11 +13,11 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer = Microsoft::WRL::ComPtr<ID3D11Buffer>();
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer = Microsoft::WRL::ComPtr<ID3D11Buffer>();
 	
-	int m_indexBufferCount;
-	int m_vertexBufferCount;
+	UINT m_indexBufferCount;
+	UINT m_vertexBufferCount;
 
-	void CreateVertexBuffer(int a_vertexCount, const Vertex* a_pFirstVertex);
-	void CreateIndexBuffer(int a_indexCount, const UINT* a_pFirstIndex);
+	void CreateVertexBuffer(UINT ta_vertexCount, const Vertex* a_pFirstVertex);
+	void CreateIndexBuffer(UINT a_indexCount, const UINT* a_pFirstIndex);
 
 
 public:

@@ -20,6 +20,11 @@ struct VertexToPixel
     float3 normal			: NORMAL;
 };
 
+float random(float2 s)
+{
+    return frac(sin(dot(s, float2(12.9898, 78.233))) * 43758.5453123);
+}
+
 // --------------------------------------------------------
 // The entry point (main method) for our pixel shader
 // 
@@ -35,5 +40,12 @@ float4 main(VertexToPixel input) : SV_TARGET
 	// - This color (like most values passing through the rasterizer) is 
 	//   interpolated for each pixel between the corresponding vertices 
 	//   of the triangle we're rendering
-    return colorTint;
+    //return float4(random(float2(input.uv.x * timeElapsedMs, input.uv.y * timeElapsedMs)), 0, 0, 1);
+    return float4(
+		cos(input.uv.x * 100 * timeElapsedMs), //r
+		sin(input.uv.y * 100 * timeElapsedMs), //g
+		0, //b
+		1 //a
+	);
 }
+

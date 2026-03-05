@@ -20,9 +20,6 @@
 #include <vector>
 #include <memory>
 
-//Shader
-#include "Helper.h"
-
 // For the DirectX Math library
 using namespace DirectX;
 
@@ -32,8 +29,6 @@ using namespace DirectX;
 // --------------------------------------------------------
 Game::Game()
 {
-
-
 	IMGUI_CHECKVERSION
 	();
 	ImGui::CreateContext();
@@ -54,9 +49,63 @@ Game::Game()
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
 
-	LoadShaders(vertexShader, pixelShader);
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> uvPixelShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> normalsPixelShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> customPixelShader;
+
+	LoadVertexShader(vertexShader, m_pVSConstantBuffer, L"VertexShader.cso");
+	LoadPixelShader<PSConstantBuffer>(
+		PSConstantBuffer(), pixelShader, m_pPSConstantBuffer, L"PixelShader.cso");
+	LoadPixelShader<PSConstantBuffer>(
+		PSConstantBuffer(), uvPixelShader, m_pPSConstantBuffer, L"DebugUVsPS.cso");
+	LoadPixelShader<PSConstantBuffer>(
+		PSConstantBuffer(), normalsPixelShader, m_pPSConstantBuffer, L"DebugNormalsPS.cso");
+	LoadPixelShader<PSConstantBuffer>(
+		PSConstantBuffer(), customPixelShader, m_pPSConstantBuffer, L"CustomPS.cso");
+
+	//Set constant buffers
+	Graphics::Context->VSSetConstantBuffers(0, 1, m_pVSConstantBuffer.GetAddressOf());
+
+	Graphics::Context->PSSetConstantBuffers(0, 1, m_pPSConstantBuffer.GetAddressOf());
+
 	CreateGeometry();
 	CreateEntities(vertexShader, pixelShader);
+
+	//for A7
+	//create game entities and their materials
+	std::shared_ptr<Material> uvMaterial = std::make_shared<Material>(
+		DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),
+		vertexShader,
+		uvPixelShader);
+	std::shared_ptr<Material> normalsMaterial = std::make_shared<Material>(
+		DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),
+		vertexShader,
+		normalsPixelShader);
+	std::shared_ptr<Material> customMaterial = std::make_shared<Material>(
+		DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		vertexShader,
+		customPixelShader);
+
+	m_entitiesList.push_back(GameEntity(m_pCube, uvMaterial));
+	m_entitiesList.push_back(GameEntity(m_pCylinder, uvMaterial));
+	m_entitiesList.push_back(GameEntity(m_pHelix, uvMaterial));
+	m_entitiesList[3].GetTransform().MoveAbsolute(3.0f, 0.0f, 10.0f);
+	m_entitiesList[4].GetTransform().MoveAbsolute(6.0f, 0.0f, 0.0f);
+	m_entitiesList[5].GetTransform().MoveAbsolute(9.0f, 0.0f, -10.0f);
+
+	m_entitiesList.push_back(GameEntity(m_pCube, normalsMaterial));
+	m_entitiesList.push_back(GameEntity(m_pCylinder, normalsMaterial));
+	m_entitiesList.push_back(GameEntity(m_pHelix, normalsMaterial));
+	m_entitiesList[6].GetTransform().MoveAbsolute(-3.0f, 0.0f, 10.0f);
+	m_entitiesList[7].GetTransform().MoveAbsolute(-6.0f, 0.0f, 0.0f);
+	m_entitiesList[8].GetTransform().MoveAbsolute(-12.0f, 0.0f, -10.0f);
+
+	m_entitiesList.push_back(GameEntity(m_pCube, customMaterial));
+	m_entitiesList.push_back(GameEntity(m_pCylinder, customMaterial));
+	m_entitiesList.push_back(GameEntity(m_pHelix, customMaterial));
+	m_entitiesList[9].GetTransform().MoveAbsolute(6.0f, 0.0f, 10.0f);
+	m_entitiesList[10].GetTransform().MoveAbsolute(9.0f, 0.0f, 0.0f);
+	m_entitiesList[11].GetTransform().MoveAbsolute(12.0f, 0.0f, -10.0f);
 
 	// Set initial graphics API state
 	//  - These settings persist until we change them
@@ -71,7 +120,7 @@ Game::Game()
 		// Ensure the pipeline knows how to interpret all the numbers stored in
 		// the vertex buffer. For this course, all of your vertices will probably
 		// have the same layout, so we can just set this once at startup.
-		Graphics::Context->IASetInputLayout(m_pInputLayout.Get());
+		Graphics::Context->IASetInputLayout(m_pVSInputLayout.Get());
 	}
 
 	m_number = 1;
@@ -100,14 +149,19 @@ Game::~Game()
 //    be verified against vertex shader byte code
 // - We'll have that byte code already loaded below
 // --------------------------------------------------------
-void Game::LoadShaders(
-	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader, Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader)
+void Game::LoadVertexShader(
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
+	Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pVertexShaderConstantBuffer,
+	std::wstring a_fileName)
 {
 	ID3DBlob* vertexShaderBlob;
-	ID3DBlob* pixelShaderBlob;
+	D3DReadFileToBlob(FixPath(a_fileName).c_str(), &vertexShaderBlob);
 
-	Helper::LoadVertexShader(&vertexShaderBlob, a_pVertexShader);
-	Helper::LoadPixelShader(&pixelShaderBlob, a_pPixelShader);
+	Graphics::Device->CreateVertexShader(
+		vertexShaderBlob->GetBufferPointer(), // Pointer to start of binary data
+		vertexShaderBlob->GetBufferSize(),// How big is that data?
+		0,// No classes in this shader
+		a_pVertexShader.GetAddressOf());// ID3D11VertexShader**
 	
 	//input layout
 	D3D11_INPUT_ELEMENT_DESC inputElements[3] = {};
@@ -133,34 +187,56 @@ void Game::LoadShaders(
 		3,										// How many elements in that array?
 		vertexShaderBlob->GetBufferPointer(),	// Pointer to the code of a shader that uses this layout
 		vertexShaderBlob->GetBufferSize(),		// Size of the shader code that uses this layout
-		m_pInputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
+		m_pVSInputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
 
-	//Create ID3D11Buffer
-	D3D11_BUFFER_DESC cbDesc = {};
-	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cbDesc.ByteWidth = (sizeof(BufferStructs) + 15) / 16 * 16;
-	cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cbDesc.Usage = D3D11_USAGE_DYNAMIC;
-
-	Graphics::Device->CreateBuffer(&cbDesc, 0, m_VSConstantBuffer.GetAddressOf());
-
-	//binding
-	Graphics::Context->VSSetConstantBuffers(0, 1, m_VSConstantBuffer.GetAddressOf());
+	//Create & bind vertex shader constant buffer
+	D3D11_BUFFER_DESC VS_ConstantBufferDesc = {};
+	VS_ConstantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	VS_ConstantBufferDesc.ByteWidth = (sizeof(VertexShaderConstantBuffer) + 15) / 16 * 16;
+	VS_ConstantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	VS_ConstantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	Graphics::Device->CreateBuffer(&VS_ConstantBufferDesc, 0, a_pVertexShaderConstantBuffer.GetAddressOf());
 }
 
+template <typename PSConstantBufferStruct>
+void Game::LoadPixelShader(
+	PSConstantBufferStruct a_pixelBufferStruct,
+	Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader,
+	Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pPixelShaderConstantBuffer,
+	std::wstring a_fileName)
+{
+	ID3DBlob* pixelShaderBlob;
+	D3DReadFileToBlob(FixPath(a_fileName).c_str(), &pixelShaderBlob);
+
+	Graphics::Device->CreatePixelShader(
+		pixelShaderBlob->GetBufferPointer(), // Pointer to start of binary data
+		pixelShaderBlob->GetBufferSize(),// How big is that data?
+		0,// No classes in this shader
+		a_pPixelShader.GetAddressOf());// ID3D11VertexShader**
+
+	//Create & bind pixel shader constant buffer
+	D3D11_BUFFER_DESC PS_ConstantBufferDesc = {};
+	PS_ConstantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	PS_ConstantBufferDesc.ByteWidth = (sizeof(PSConstantBufferStruct) + 15) / 16 * 16;
+	PS_ConstantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	PS_ConstantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	
+	Graphics::Device->CreateBuffer(&PS_ConstantBufferDesc, 0, a_pPixelShaderConstantBuffer.GetAddressOf());
+}
 
 // --------------------------------------------------------
 // Creates the geometry we're going to draw
 // --------------------------------------------------------
 void Game::CreateGeometry()
 {
-	m_cube = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/cube.obj").c_str());
-	m_cylinder = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/cylinder.obj").c_str());
-	m_helix = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/helix.obj").c_str());
+	m_pCube = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/cube.obj").c_str());
+	m_pCylinder = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/cylinder.obj").c_str());
+	m_pHelix = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/helix.obj").c_str());
 }
 
 void Game::CreateEntities(
-	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader, Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader)
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
+	Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader)
 {
 	//Create Cameras
 	std::shared_ptr cameraPerspective = std::make_shared<Camera>(
@@ -190,7 +266,7 @@ void Game::CreateEntities(
 	m_camerasList.push_back(cameraPerspective);
 	m_camerasList.push_back(cameraOrthographic);
 
-	m_activeCamera = cameraOrthographic;
+	m_pActiveCamera = cameraOrthographic;
 
 	//create game entities and their materials
 	std::shared_ptr<Material> red = std::make_shared<Material>(
@@ -206,9 +282,9 @@ void Game::CreateEntities(
 		a_pVertexShader,
 		a_pPixelShader);
 
-	m_entitiesList.push_back(GameEntity(m_cube, red));
-	m_entitiesList.push_back(GameEntity(m_cylinder, blue));
-	m_entitiesList.push_back(GameEntity(m_helix, green));
+	m_entitiesList.push_back(GameEntity(m_pCube, red));
+	m_entitiesList.push_back(GameEntity(m_pCylinder, blue));
+	m_entitiesList.push_back(GameEntity(m_pHelix, green));
 
 	m_entitiesList[0].GetTransform().MoveAbsolute(0.0f, 0.0f, 10.0f);
 	m_entitiesList[1].GetTransform().MoveAbsolute(3.0f, 0.0f, 0.0f);
@@ -241,10 +317,13 @@ void Game::Update(float deltaTime, float totalTime)
 	if (Input::KeyDown(VK_ESCAPE))
 		Window::Quit();
 
+	for (GameEntity& ent : m_entitiesList) {
+		ent.m_lifetimeMs += deltaTime;
+	}
 	//for (GameEntity& object : m_entitiesList) {
 	//	object.GetTransform().MoveAbsolute(sin(totalTime * 2) * deltaTime, sin(totalTime * 2) * deltaTime, 0.0f);
 	//}
-	m_activeCamera->Update(deltaTime);
+	m_pActiveCamera->Update(deltaTime);
 }
 
 //Builds custom GUI
@@ -279,7 +358,8 @@ void Game::BuildUI() {
 	
 	//Change window title
 	ImGui::Text("Change the window title here!");
-	ImGui::InputTextMultiline("##source", m_test, IM_ARRAYSIZE(m_test), ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16));
+	ImGui::InputTextMultiline(
+		"##source", m_test, IM_ARRAYSIZE(m_test), ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16));
 
 	if (ImGui::Button("Change title!") && !m_test[0] == '\0') {
 		m_title = m_test;
@@ -327,40 +407,40 @@ void Game::BuildUI() {
 
 	static int e = 1;
 	if (ImGui::RadioButton("Camera 1: Perspective", &e, 0)) {
-		m_activeCamera = m_camerasList[0];
+		m_pActiveCamera = m_camerasList[0];
 	}
 	if (ImGui::RadioButton("Camera 2: Orthographic", &e, 1)) {
-		m_activeCamera = m_camerasList[1];
+		m_pActiveCamera = m_camerasList[1];
 	}
 
 	if (ImGui::TreeNode("Active Camera")) {
 		//Camera
-		DirectX::XMFLOAT3 position = m_activeCamera->GetTransform().GetPosition();
-		DirectX::XMFLOAT4 rotation = m_activeCamera->GetTransform().GetRotation();
-		DirectX::XMFLOAT3 scale = m_activeCamera->GetTransform().GetScale();
+		DirectX::XMFLOAT3 position = m_pActiveCamera->GetTransform().GetPosition();
+		DirectX::XMFLOAT4 rotation = m_pActiveCamera->GetTransform().GetRotation();
+		DirectX::XMFLOAT3 scale = m_pActiveCamera->GetTransform().GetScale();
 
 		if (ImGui::DragFloat3("Translation", &position.x, 0.1f, -1.0f, 1.0f)) {
-			m_activeCamera->GetTransform().SetPosition(position);
+			m_pActiveCamera->GetTransform().SetPosition(position);
 		};
 		if (ImGui::DragFloat4("Rotation (Quaternion)", &rotation.x, 0.1f, -1.0f, 1.0f)) {
-			m_activeCamera->GetTransform().SetRotation(rotation);
+			m_pActiveCamera->GetTransform().SetRotation(rotation);
 		}
 		if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.1f, 2.0f)) {
-			m_activeCamera->GetTransform().SetScale(scale);
+			m_pActiveCamera->GetTransform().SetScale(scale);
 		}
-		DirectX::XMFLOAT3 forwards = m_activeCamera->GetTransform().GetForward();
+		DirectX::XMFLOAT3 forwards = m_pActiveCamera->GetTransform().GetForward();
 		if (ImGui::DragFloat3("Forwards", &forwards.x, 0.1f, 0.1f, 2.0f)) {
 		}
 
-		DirectX::XMFLOAT3 right = m_activeCamera->GetTransform().GetRight();
+		DirectX::XMFLOAT3 right = m_pActiveCamera->GetTransform().GetRight();
 		if (ImGui::DragFloat3("Right", &right.x, 0.1f, 0.1f, 2.0f)) {
 		}
 
-		DirectX::XMFLOAT3 up = m_activeCamera->GetTransform().GetUp();
+		DirectX::XMFLOAT3 up = m_pActiveCamera->GetTransform().GetUp();
 		if (ImGui::DragFloat3("Up", &up.x, 0.1f, 0.1f, 2.0f)) {
 		}
 
-		if (ImGui::DragFloat("Look X", &(m_activeCamera->m_lookOffsetPitch), 0.1f, 0.1f, 2.0f)) {
+		if (ImGui::DragFloat("Look X", &(m_pActiveCamera->m_lookOffsetPitch), 0.1f, 0.1f, 2.0f)) {
 		}
 		ImGui::TreePop();
 	};
@@ -434,7 +514,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	{
 		for (GameEntity& entity : m_entitiesList) {
-			entity.Draw(m_VSConstantBuffer, m_activeCamera);
+			entity.Draw(m_pVSConstantBuffer, m_pPSConstantBuffer, m_pActiveCamera);
 		}
 	}
 
