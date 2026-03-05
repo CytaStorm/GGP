@@ -54,15 +54,11 @@ void Camera::UpdateProjectionMatrix(float a_aspectRatio)
 
 void Camera::UpdateViewMatrix()
 {
-	DirectX::XMFLOAT3 transformPosition = m_transform.GetPosition();
-	DirectX::XMFLOAT3 transformForward = m_transform.GetForward();
+	DirectX::XMVECTOR position = DirectX::XMLoadFloat3(&m_transform.GetPosition());
+	DirectX::XMVECTOR forward = DirectX::XMLoadFloat3(&m_transform.GetForward());
+	DirectX::XMVECTOR worldUpVector = { 0.0f, 1.0f, 0.0f };
 
-	DirectX::XMVECTOR position = DirectX::XMLoadFloat3(&transformPosition);
-	DirectX::XMVECTOR rotation = DirectX::XMLoadFloat3(&transformForward);
-	DirectX::XMFLOAT3 worldUp = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-	DirectX::XMVECTOR worldUpVector = DirectX::XMLoadFloat3(&worldUp);
-
-	DirectX::XMMATRIX viewMatrix = DirectX::XMMatrixLookToLH(position, rotation, worldUpVector);
+	DirectX::XMMATRIX viewMatrix = DirectX::XMMatrixLookToLH(position, forward, worldUpVector);
 	DirectX::XMStoreFloat4x4(&m_viewMatrix, viewMatrix);
 }
 
@@ -76,6 +72,11 @@ void Camera::Update(float a_deltaTime)
 		float scaledCursorMovementX = cursorMovementX * m_mouseLookSpeed;
 		float scaledCursorMovementY = cursorMovementY * m_mouseLookSpeed;
 
+		//for looking behind
+		//if (m_transform.GetForward().z < 0) {
+		//	scaledCursorMovementY *= -1;
+		//}
+
 		m_lookOffsetPitch += scaledCursorMovementY;
 		m_lookOffsetYaw += scaledCursorMovementX;
 
@@ -84,35 +85,40 @@ void Camera::Update(float a_deltaTime)
 			scaledCursorMovementY = 0;
 		}
 
+		// x axis
+		DirectX::XMVECTOR rightVector = DirectX::XMLoadFloat3(&m_transform.GetRight());
+		DirectX::XMVECTOR pitchOffset = 
+			DirectX::XMQuaternionRotationAxis(
+				rightVector, scaledCursorMovementY
+			);
+
+
+		// y axis
+		DirectX::XMVECTOR upVector = DirectX::XMLoadFloat3(&m_transform.GetUp());
+		DirectX::XMVECTOR yawOffset = 
+			DirectX::XMQuaternionRotationAxis(
+				upVector, scaledCursorMovementX
+			);
+
 		//change in rotation
-		DirectX::XMVECTOR rotationOffsetVector = 
-			DirectX::XMQuaternionRotationRollPitchYaw(
-				scaledCursorMovementY, scaledCursorMovementX, 0.0f);
+		DirectX::XMVECTOR rotationOffsetVector =
+			DirectX::XMQuaternionMultiply(yawOffset, pitchOffset);
 
-		DirectX::XMFLOAT4 originalRotation = m_transform.GetRotation();
-		DirectX::XMVECTOR originalRotationVector = DirectX::XMLoadFloat4(&originalRotation);
+		DirectX::XMFLOAT4 rotationOffset;
+		DirectX::XMStoreFloat4(&rotationOffset, rotationOffsetVector);
 
-		DirectX::XMVECTOR potentialRotationVector = 
-			DirectX::XMQuaternionMultiply(originalRotationVector, rotationOffsetVector);
+		m_transform.Rotate(rotationOffset);
 
-		DirectX::XMFLOAT3 potentialForward;
-		DirectX::XMFLOAT3 transformForward = m_transform.GetForward();
-		DirectX::XMVECTOR potentialForwardVector = DirectX::XMLoadFloat3(&transformForward);
 
-		DirectX::XMFLOAT3 potentialRight;
-		DirectX::XMFLOAT3 transformRight = m_transform.GetRight();
-		DirectX::XMVECTOR potentialRightVector = DirectX::XMLoadFloat3(&transformRight);
 
-		potentialForwardVector = DirectX::XMVector3Rotate(potentialForwardVector, rotationOffsetVector);
-		potentialRightVector = DirectX::XMVector3Rotate(potentialRightVector, rotationOffsetVector);
+		//change in rotation
+		//DirectX::XMVECTOR rotationOffsetVector = 
+		//	DirectX::XMQuaternionRotationRollPitchYaw(
+		//		scaledCursorMovementY, scaledCursorMovementX, 0.0f);
 
-		DirectX::XMStoreFloat3(&potentialForward, potentialForwardVector);
-		DirectX::XMStoreFloat3(&potentialRight, potentialRightVector);
-
-		DirectX::XMFLOAT4 finalRotation;
-		DirectX::XMStoreFloat4(&finalRotation, potentialRotationVector);
-
-		m_transform.SetRotation(finalRotation);
+		//DirectX::XMFLOAT4 rotationOffset;
+		//DirectX::XMStoreFloat4(&rotationOffset, rotationOffsetVector);
+		//m_transform.Rotate(rotationOffset);
 	}
 	//process user input
 	//movement

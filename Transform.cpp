@@ -51,7 +51,6 @@ void Transform::SetRotation(DirectX::XMFLOAT4 a_rotation)
 
 	m_rotation = a_rotation;
 
-
 	//Reset transform, since is setting absolute rotation
 	//reset forward, right and up is recalculated in UpdateTransformDirection
 	m_forward = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
@@ -84,27 +83,27 @@ void Transform::SetScale(float a_x, float a_y, float a_z)
 	Transform::SetScale(DirectX::XMFLOAT3(a_x, a_y, a_z));
 }
 
-DirectX::XMFLOAT3 Transform::GetPosition()
+const DirectX::XMFLOAT3& Transform::GetPosition()
 {
 	return m_position;
 }
 
-DirectX::XMFLOAT4 Transform::GetRotation()
+const DirectX::XMFLOAT4& Transform::GetRotation()
 {
 	return m_rotation;
 }
 
-DirectX::XMFLOAT3 Transform::GetScale()
+const DirectX::XMFLOAT3& Transform::GetScale()
 {
 	return m_scale;
 }
 
-DirectX::XMFLOAT4X4 Transform::GetWorldMatrix()
+const DirectX::XMFLOAT4X4& Transform::GetWorldMatrix()
 {
 	return m_worldMatrix;
 }
 
-DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix()
+const DirectX::XMFLOAT4X4& Transform::GetWorldInverseTransposeMatrix()
 {
 	return m_worldInverseTransposeMatrix;
 }
@@ -140,26 +139,29 @@ void Transform::Rotate(float a_pitch, float a_yaw, float a_roll)
 	DirectX::XMVECTOR finalRotation = DirectX::XMQuaternionMultiply(originalRotation, rotationOffsetVector);
 
 	DirectX::XMStoreFloat4(&m_rotation, finalRotation);
-	UpdateTransformDirection(rotationOffsetVector);
+
+	DirectX::XMVECTOR forwardVector = DirectX::XMLoadFloat3(&m_forward);
+	forwardVector = DirectX::XMVector3Rotate(forwardVector, rotationOffsetVector);
+	UpdateTransformDirection(m_rotation);
 	m_matrixDirtied = true;
 }
 
-void Transform::Rotate(DirectX::XMFLOAT4 a_rotation)
+void Transform::Rotate(DirectX::XMFLOAT4 a_rotationDelta)
 {
-	if (a_rotation.x == 0 &&
-		a_rotation.y == 0 &&
-		a_rotation.z == 0 &&
-		a_rotation.w == 1) {
+	if (a_rotationDelta.x == 0 &&
+		a_rotationDelta.y == 0 &&
+		a_rotationDelta.z == 0 &&
+		a_rotationDelta.w == 1) {
 		return;
 	}
 
 	//Only update when offset not zero
-	DirectX::XMVECTOR rotationOffsetVector = DirectX::XMLoadFloat4(&a_rotation);
+	DirectX::XMVECTOR rotationOffsetVector = DirectX::XMLoadFloat4(&a_rotationDelta);
 	DirectX::XMVECTOR originalRotation = DirectX::XMLoadFloat4(&m_rotation);
 	rotationOffsetVector = DirectX::XMQuaternionMultiply(originalRotation, rotationOffsetVector);
 
 	DirectX::XMStoreFloat4(&m_rotation, rotationOffsetVector);
-	UpdateTransformDirection(rotationOffsetVector);
+	UpdateTransformDirection(a_rotationDelta);
 	m_matrixDirtied = true;
 }
 
@@ -202,47 +204,45 @@ void Transform::CalculateWorldMatrix()
 
 void Transform::MoveRelative(DirectX::XMFLOAT3 a_offset)
 {
-	DirectX::XMVECTOR offsetVector = DirectX::XMLoadFloat3(&a_offset);
-	
-	DirectX::XMVECTOR currentRotation = DirectX::XMLoadFloat4(&m_rotation);
-	
-	DirectX::XMVECTOR moveOffsetVectorCorrected = DirectX::XMVector3Rotate(offsetVector, currentRotation);
-	
-	DirectX::XMVECTOR currentPosition = DirectX::XMLoadFloat3(&m_position);
-
-	DirectX::XMVECTOR newPosition = DirectX::XMVectorAdd(moveOffsetVectorCorrected, currentPosition);
-
-	DirectX::XMStoreFloat3(&m_position, newPosition);
-	
-	m_matrixDirtied = true;
+	MoveRelative(a_offset.x, a_offset.y, a_offset.z);
 }
 
 void Transform::MoveRelative(float a_x, float a_y, float a_z)
 {
-	DirectX::XMFLOAT3 offset(a_x, a_y, a_z);
-
+	DirectX::XMVECTOR rightOffset = DirectX::XMLoadFloat3(&m_right);
+	DirectX::XMVECTOR upOffset = DirectX::XMLoadFloat3(&m_up);
+	DirectX::XMVECTOR forwardOffset = DirectX::XMLoadFloat3(&m_forward);
 	//move on x axis
-	float xOffset = a_x * m_right
+	rightOffset = DirectX::XMVectorScale(rightOffset, a_x);
 	//move on y axis
+	upOffset = DirectX::XMVectorScale(upOffset, a_y);
 	//move on z axis
-	Transform::MoveRelative(offset);
+	forwardOffset = DirectX::XMVectorScale(forwardOffset, a_z);
+
+	DirectX::XMVECTOR moveOffsetVector = DirectX::XMVectorAdd(rightOffset, upOffset);
+	moveOffsetVector = DirectX::XMVectorAdd(moveOffsetVector, forwardOffset);
+
+	DirectX::XMFLOAT3 moveOffset; 
+	DirectX::XMStoreFloat3(&moveOffset, moveOffsetVector);
+	MoveAbsolute(moveOffset);
 }
 
-DirectX::XMFLOAT3 Transform::GetRight()
+const DirectX::XMFLOAT3& Transform::GetRight()
 {
 	return m_right;
 }
 
-DirectX::XMFLOAT3 Transform::GetUp()
+const DirectX::XMFLOAT3& Transform::GetUp()
 {
 	return m_up;
 }
 
-DirectX::XMFLOAT3 Transform::GetForward()
+const DirectX::XMFLOAT3& Transform::GetForward()
 {
 	return m_forward;
 }
-void Transform::UpdateTransformDirection(DirectX::XMVECTOR a_rotation)
+
+void Transform::UpdateTransformDirection(DirectX::XMFLOAT4 a_rotationDelta)
 {
 	//DirectX::XMVECTOR right = DirectX::XMLoadFloat3(&m_right);
 	//DirectX::XMVECTOR up = DirectX::XMLoadFloat3(&m_up);
@@ -250,21 +250,13 @@ void Transform::UpdateTransformDirection(DirectX::XMVECTOR a_rotation)
 
 	//right = DirectX::XMVector3Rotate(right, a_rotation);
 	//up = DirectX::XMVector3Rotate(up, a_rotation);
-	forward = DirectX::XMVector3Rotate(forward, a_rotation);
+	forward = DirectX::XMVector3Rotate(forward, DirectX::XMLoadFloat4(&a_rotationDelta));
 
 	//DirectX::XMStoreFloat3(&m_right, right);
 	//DirectX::XMStoreFloat3(&m_up, up);
 	//DirectX::XMMatrixLookToLH(DirectX::XMLoadFloat3(&m_position), forward, DirectX::XMLoadFloat3(&m_up));
 	DirectX::XMVECTOR newRightVector = DirectX::XMVector3Cross(forward, DirectX::XMLoadFloat3(&m_up));
+	newRightVector = DirectX::XMVectorScale(newRightVector, -1);
 	DirectX::XMStoreFloat3(&m_right, newRightVector);
 	DirectX::XMStoreFloat3(&m_forward, forward);
 }
-
-
-void Transform::UpdateTransformDirection(DirectX::XMFLOAT4 a_rotation)
-{
-	DirectX::XMVECTOR rotation = DirectX::XMLoadFloat4(&a_rotation);
-	UpdateTransformDirection(rotation);
-}
-
-

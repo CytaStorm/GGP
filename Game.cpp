@@ -198,11 +198,11 @@ void Game::CreateEntities(
 		a_pVertexShader,
 		a_pPixelShader);
 	std::shared_ptr<Material> blue = std::make_shared<Material>(
-		DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),
+		DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f),
 		a_pVertexShader,
 		a_pPixelShader);
 	std::shared_ptr<Material> green = std::make_shared<Material>(
-		DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f),
+		DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),
 		a_pVertexShader,
 		a_pPixelShader);
 
@@ -211,8 +211,8 @@ void Game::CreateEntities(
 	m_entitiesList.push_back(GameEntity(m_helix, green));
 
 	m_entitiesList[0].GetTransform().MoveAbsolute(0.0f, 0.0f, 10.0f);
-	m_entitiesList[1].GetTransform().MoveAbsolute(3.0f, 0.0f, 10.0f);
-	m_entitiesList[2].GetTransform().MoveAbsolute(6.0f, 0.0f, 10.0f);
+	m_entitiesList[1].GetTransform().MoveAbsolute(3.0f, 0.0f, 0.0f);
+	m_entitiesList[2].GetTransform().MoveAbsolute(6.0f, 0.0f, -10.0f);
 }
 
 
