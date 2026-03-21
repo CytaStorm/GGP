@@ -1,6 +1,8 @@
 cbuffer PixelcBuffer : register(b0)
 {
     float4 colorTint;
+    float2 scale;
+    float2 offset;
     float timeElapsedMs;
 }
 // Struct representing the data we expect to receive from earlier pipeline stages

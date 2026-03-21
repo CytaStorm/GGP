@@ -12,6 +12,8 @@ struct VertexShaderConstantBuffer
 
 struct PSConstantBuffer {
 	DirectX::XMFLOAT4 m_colorTint;
+	DirectX::XMFLOAT2 m_scale;
+	DirectX::XMFLOAT2 m_offset;
 	float m_timeElapsedMs;
 	PSConstantBuffer();
 };

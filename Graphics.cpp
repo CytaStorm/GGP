@@ -162,6 +162,20 @@ HRESULT Graphics::Initialize(unsigned int windowWidth, unsigned int windowHeight
 	debug->QueryInterface(IID_PPV_ARGS(InfoQueue.GetAddressOf()));
 #endif
 
+	//set up ring buffer
+	Context->QueryInterface<ID3D11DeviceContext1>(context1.GetAddressOf());
+
+	cbHeapOffsetInBytes = 0;
+	cbHeapSizeInBytes = 1000 * 256;
+	cbHeapSizeInBytes = (cbHeapSizeInBytes + 255) / 256 * 256;
+
+	D3D11_BUFFER_DESC RingBufferDesc = {};
+	RingBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	RingBufferDesc.ByteWidth = cbHeapSizeInBytes;
+	RingBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	RingBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	Graphics::Device->CreateBuffer(&RingBufferDesc, 0, ConstantBufferHeap.GetAddressOf());
+
 	return S_OK;
 }
 
@@ -319,4 +333,48 @@ void Graphics::PrintDebugMessages()
 
 	// Clear any messages we've printed
 	InfoQueue->ClearStoredMessages();
+}
+
+void Graphics::FillAndBindNextConstantBuffer(void* a_data, unsigned int a_dataSizeInBytes, D3D11_SHADER_TYPE a_shadertype, unsigned int a_registerSlot)
+{
+	unsigned int reservationSize = (a_dataSizeInBytes + 255) / 256 * 256;
+
+	if (cbHeapOffsetInBytes + reservationSize >= cbHeapSizeInBytes) cbHeapOffsetInBytes = 0;
+
+	D3D11_MAPPED_SUBRESOURCE map{};
+	Context->Map(
+		ConstantBufferHeap.Get(),
+		0,
+		D3D11_MAP_WRITE_NO_OVERWRITE,
+		0,
+		&map);
+
+	void* uploadAddress = reinterpret_cast<void*>((UINT64)map.pData + cbHeapOffsetInBytes);
+	memcpy(uploadAddress, a_data, a_dataSizeInBytes);
+
+	Context->Unmap(ConstantBufferHeap.Get(), 0);
+
+	unsigned int firstConstant = cbHeapOffsetInBytes / 16;
+	unsigned int numConstants = reservationSize / 16;
+
+	switch (a_shadertype) {
+	case D3D11_VERTEX_SHADER:
+		context1->VSSetConstantBuffers1(
+			a_registerSlot,
+			1,
+			ConstantBufferHeap.GetAddressOf(),
+			&firstConstant,
+			&numConstants);
+		break;
+	case D3D11_PIXEL_SHADER:
+		context1->PSSetConstantBuffers1(
+			a_registerSlot,
+			1,
+			ConstantBufferHeap.GetAddressOf(),
+			&firstConstant,
+			&numConstants);
+		break;
+	}
+
+	cbHeapOffsetInBytes += reservationSize;
 }

@@ -49,6 +49,7 @@ private:
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader, 
 		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader);
 
+
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
 	//     Component Object Model, which DirectX objects do

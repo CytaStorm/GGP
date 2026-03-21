@@ -8,6 +8,7 @@
 #include "Camera.h"
 #include "Projection.h"
 #include <DirectXMath.h>
+#include "WICTextureLoader.h"
 
 //ImGui includes
 #include "ImGui/imgui.h"
@@ -40,9 +41,6 @@ Game::Game()
 
 	ImGui::StyleColorsDark();
 
-
-
-
 	// Helper methods for loading shaders, creating some basic
 	// geometry to draw and some simple camera matrices.
 	//  - You'll be expanding and/or replacing these later
@@ -71,8 +69,7 @@ Game::Game()
 	CreateGeometry();
 	CreateEntities(vertexShader, pixelShader);
 
-	//for A7
-	//create game entities and their materials
+
 	std::shared_ptr<Material> uvMaterial = std::make_shared<Material>(
 		DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),
 		vertexShader,
@@ -268,9 +265,46 @@ void Game::CreateEntities(
 
 	m_pActiveCamera = cameraOrthographic;
 
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bambooSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rocksSRV;
+	//for A7
+	//create game entities and their materials
+	CreateWICTextureFromFile(
+		Graphics::Device.Get(),
+		Graphics::Context.Get(),
+		L"Assets/Textures/bamboo/4k-bamboo-diffuse.jpg",
+		0,
+		bambooSRV.GetAddressOf()
+	);
+
+	CreateWICTextureFromFile(
+		Graphics::Device.Get(),
+		Graphics::Context.Get(),
+		L"Assets/Textures/rocks/aerial_rocks_01_diff_4k.jpg",
+		0,
+		rocksSRV.GetAddressOf()
+	);
+
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
+
+	D3D11_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	
+	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+	samplerDesc.MaxAnisotropy = 16;
+
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	Graphics::Device->CreateSamplerState(&samplerDesc, sampler.GetAddressOf());
+	
 	//create game entities and their materials
 	std::shared_ptr<Material> red = std::make_shared<Material>(
 		DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),
+		DirectX::XMFLOAT2(5.0f, 5.0f),
+		DirectX::XMFLOAT2(0.0f, 0.0f),
 		a_pVertexShader,
 		a_pPixelShader);
 	std::shared_ptr<Material> blue = std::make_shared<Material>(
@@ -282,6 +316,15 @@ void Game::CreateEntities(
 		a_pVertexShader,
 		a_pPixelShader);
 
+	red->AddTextureSRV(0, rocksSRV);
+	red->AddSampler(0, sampler);
+
+	blue->AddTextureSRV(0, bambooSRV);
+	blue->AddSampler(0, sampler);
+
+	green->AddTextureSRV(0, rocksSRV);
+	green->AddSampler(0, sampler);
+
 	m_entitiesList.push_back(GameEntity(m_pCube, red));
 	m_entitiesList.push_back(GameEntity(m_pCylinder, blue));
 	m_entitiesList.push_back(GameEntity(m_pHelix, green));
@@ -290,6 +333,7 @@ void Game::CreateEntities(
 	m_entitiesList[1].GetTransform().MoveAbsolute(3.0f, 0.0f, 0.0f);
 	m_entitiesList[2].GetTransform().MoveAbsolute(6.0f, 0.0f, -10.0f);
 }
+
 
 
 // --------------------------------------------------------
@@ -514,6 +558,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	{
 		for (GameEntity& entity : m_entitiesList) {
+			entity.GetMaterial()->BindTexturesAndSamplers();
 			entity.Draw(m_pVSConstantBuffer, m_pPSConstantBuffer, m_pActiveCamera);
 		}
 	}

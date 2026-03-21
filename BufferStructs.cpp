@@ -12,5 +12,7 @@ VertexShaderConstantBuffer::VertexShaderConstantBuffer()
 PSConstantBuffer::PSConstantBuffer()
 {
 	m_colorTint = { 1.0f, 1.0f, 1.0f, 1.0f }; //white;
+	m_scale = { 1, 1 };
+	m_offset = { 0, 0 };
 	m_timeElapsedMs = 0;
 }
