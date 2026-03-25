@@ -267,6 +267,7 @@ void Game::CreateEntities(
 
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bambooSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> maskSRV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rocksSRV;
 	//for A7
 	//create game entities and their materials
@@ -276,6 +277,14 @@ void Game::CreateEntities(
 		L"Assets/Textures/bamboo/4k-bamboo-diffuse.jpg",
 		0,
 		bambooSRV.GetAddressOf()
+	);
+
+	CreateWICTextureFromFile(
+		Graphics::Device.Get(),
+		Graphics::Context.Get(),
+		L"Assets/Textures/alpha/black-paint-texture-stroke-isolated-white-clipping-mask-alpha-channel-enables-quick-isolation-black-paint-texture-379820722.png",
+		0,
+		maskSRV.GetAddressOf()
 	);
 
 	CreateWICTextureFromFile(
@@ -317,12 +326,15 @@ void Game::CreateEntities(
 		a_pPixelShader);
 
 	red->AddTextureSRV(0, rocksSRV);
+	red->AddTextureSRV(1, maskSRV);
 	red->AddSampler(0, sampler);
 
 	blue->AddTextureSRV(0, bambooSRV);
+	blue->AddTextureSRV(1, maskSRV);
 	blue->AddSampler(0, sampler);
 
 	green->AddTextureSRV(0, rocksSRV);
+	green->AddTextureSRV(1, maskSRV);
 	green->AddSampler(0, sampler);
 
 	m_entitiesList.push_back(GameEntity(m_pCube, red));
@@ -414,7 +426,7 @@ void Game::BuildUI() {
 	ImGui::SliderFloat("How high would you like the window?", &m_menuHeight, 400.0f, 720.0f, "%f");
 
 	if (ImGui::TreeNode("Scene Objects")) {
-		for (int i = 1; i < 4; i++) {
+		for (int i = 1; i < 13; i++) {
 			ImGui::PushID(i);
 			if (ImGui::TreeNode("", "Object %d", i)) {
 				GameEntity* currentObject = &m_entitiesList[i - 1];
@@ -439,6 +451,26 @@ void Game::BuildUI() {
 				ImGui::Text("Triangles: %d", triangleCount);
 				ImGui::Text("Vertices: %d", vertexCount);
 				ImGui::Text("Indicies: %d", indexCount);
+				
+				if (ImGui::TreeNode("Material")) {
+					std::shared_ptr<Material> currentMaterial = currentObject->GetMaterial();
+					DirectX::XMFLOAT4 tint = currentMaterial->GetColorTint();
+					if (ImGui::DragFloat4("Tint", &tint.x, 0.05f, 0.0f, 1.0f)) {
+						currentMaterial->SetColor(tint);
+					}
+					DirectX::XMFLOAT2 UVscale = currentMaterial->GetUVscale();
+					if (ImGui::DragFloat2("UV Scale", &UVscale.x, 0.1f, 0.0f, 10.0f)) {
+						currentMaterial->SetUVScale(UVscale.x, UVscale.y);
+					}
+					DirectX::XMFLOAT2 UVoffset = currentMaterial->GetUVoffset();
+					if (ImGui::DragFloat2("UV Offset", &UVoffset.x, 0.1f, 0.0f, 10.0f)) {
+						currentMaterial->SetUVOffset(UVoffset.x, UVoffset.y);
+					}
+					for (const auto& [key, value] : currentMaterial->GetSRVMap()) {
+						ImGui::Image((void*)value.Get(), ImVec2(100, 100));
+					}
+					ImGui::TreePop();
+				}
 				ImGui::TreePop();
 			}
 			ImGui::PopID();

@@ -44,12 +44,12 @@ public:
 	void SetColor(DirectX::XMFLOAT4 a_color);
 	void SetVertexShader(Microsoft::WRL::ComPtr<ID3D11VertexShader> a_pVertexShader);
 	void SetPixelShader(Microsoft::WRL::ComPtr<ID3D11PixelShader> a_pPixelShader);
-	void SetUVScale(int a_xScale, int a_yScale);
-	void SetUVOffset(int a_xOffset, int a_yOffset);
-
+	void SetUVScale(float a_xScale, float a_yScale);
+	void SetUVOffset(float a_xOffset, float a_yOffset);
 
 	void AddTextureSRV(unsigned int a_index, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> a_textureSRV);
 	void AddSampler(unsigned int a_index, Microsoft::WRL::ComPtr<ID3D11SamplerState> a_sampler);
 	void BindTexturesAndSamplers();
+	std::unordered_map<unsigned int, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> GetSRVMap();
 };
 

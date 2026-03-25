@@ -1,4 +1,5 @@
 Texture2D SurfaceTexture : register(t0);
+Texture2D MaskTexture: register(t1);
 SamplerState BasicSampler : register(s0);
 
 cbuffer PixelcBuffer : register(b0)
@@ -41,6 +42,6 @@ float4 main(VertexToPixel input) : SV_TARGET
 	//   interpolated for each pixel between the corresponding vertices 
 	//   of the triangle we're rendering
     input.uv = input.uv * scale + offset;
-    float surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv);
-    return surfaceColor * colorTint;
+    float4 surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv);
+    return surfaceColor * MaskTexture.Sample(BasicSampler, input.uv) * colorTint;
 }

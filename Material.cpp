@@ -73,12 +73,12 @@ void Material::SetPixelShader(Microsoft::WRL::ComPtr<ID3D11PixelShader> a_pPixel
 	m_pPixelShader = a_pPixelShader;
 }
 
-void Material::SetUVScale(int a_xScale, int a_yScale) {
+void Material::SetUVScale(float a_xScale, float a_yScale) {
 	m_UVscale.x = a_xScale;
 	m_UVscale.y = a_yScale;
 }
 
-void Material::SetUVOffset(int a_xOffset, int a_yOffset) {
+void Material::SetUVOffset(float a_xOffset, float a_yOffset) {
 	m_UVoffset.x = a_xOffset;
 	m_UVoffset.y = a_yOffset;
 }
@@ -92,6 +92,11 @@ void Material::BindTexturesAndSamplers()
 	for (const auto& [key, value] : m_samplers) {
 		Graphics::Context->PSSetSamplers(key, 1, value.GetAddressOf());
 	}
+}
+
+std::unordered_map<unsigned int, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> Material::GetSRVMap()
+{
+	return m_textureSRV;
 }
 
 void Material::AddTextureSRV(unsigned int a_index, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> a_textureSRV)
