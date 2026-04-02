@@ -1,30 +1,87 @@
+#include "ShaderIncludes.hlsli"
+#define LIGHT_TYPE_DIRECTIONAL 0
+#define LIGHT_TYPE_POINT 1
+#define LIGHT_TYPE_SPOT 2
+
 Texture2D SurfaceTexture : register(t0);
 Texture2D MaskTexture: register(t1);
 SamplerState BasicSampler : register(s0);
 
+struct Light
+{
+    int type;
+    float3 direction;
+    float range;
+    float3 position;
+    float intensity;
+    float3 color;
+    float spotInnerAngle;
+    float spotOuterAngle;
+    float2 padding;
+};
+
 cbuffer PixelcBuffer : register(b0)
 {
-    float4 colorTint;
+    float4 colorTint; //16
     float2 scale;
-    float2 offset;
-    float timeElapsedMs;
+    float2 offset; // 16
+    float3 cameraPosition;
+    float timeElapsedMs; //16
+    Light lights[5]; //16
+    float3 ambientColor;
 }
-// Struct representing the data we expect to receive from earlier pipeline stages
-// - Should match the output of our corresponding vertex shader
-// - The name of the struct itself is unimportant
-// - The variable names don't have to match other shaders (just the semantics)
-// - Each variable must have a semantic, which defines its usage
-struct VertexToPixel
+
+float3 Attenuate(Light light, float3 worldPos)
 {
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
-	float4 screenPosition	: SV_POSITION;
-    float2 uv				: TEXCOORD;
-    float3 normal			: NORMAL;
-};
+    float dist = distance(light.position, worldPos);
+    float att = saturate(1.0f - (dist * dist / (light.range * light.range)));
+    return att * att;
+}
+
+float3 PointLight(VertexToPixel input, Light light, float3 surfaceColor)
+{
+    //diffuse
+    //float3 directionToLight = -lights[lightIndex].direction;
+    float3 directionToLight = light.position - input.worldPosition;
+    float3 diffuseTerm = saturate(dot(input.normal, directionToLight)) * 
+        light.color * 
+        light.intensity * 
+        surfaceColor;  
+
+    //phong
+    float3 refl = reflect(-light.direction, input.normal);
+
+    float RdotV = saturate(dot(refl, normalize(input.worldPosition - cameraPosition)));
+    float3 specularTerm =
+       pow(RdotV, 256) * 
+       light.color * 
+       light.intensity * 
+       surfaceColor.xyz;
+
+    return (diffuseTerm + specularTerm) * Attenuate(light, input.worldPosition);
+}
+
+float3 DirectionalLight(VertexToPixel input, Light light, float3 surfaceColor)
+{
+    //diffuse
+    float3 directionToLight = -light.direction;
+    float3 diffuseTerm = saturate(dot(input.normal, directionToLight)) * 
+        light.color * 
+        light.intensity * 
+        surfaceColor;  
+
+    //phong
+    float3 refl = reflect(-light.direction, input.normal);
+    
+    float RdotV = saturate(dot(refl, normalize(input.worldPosition - cameraPosition)));
+    float3 specularTerm =
+       pow(RdotV, 256) * 
+       light.color * 
+       light.intensity * 
+       surfaceColor.xyz;
+
+    return diffuseTerm + specularTerm;
+}
 
 // --------------------------------------------------------
 // The entry point (main method) for our pixel shader
@@ -37,11 +94,38 @@ struct VertexToPixel
 // --------------------------------------------------------
 float4 main(VertexToPixel input) : SV_TARGET
 {
-	// Just return the input color
-	// - This color (like most values passing through the rasterizer) is 
-	//   interpolated for each pixel between the corresponding vertices 
-	//   of the triangle we're rendering
+    input.normal = normalize(input.normal);
     input.uv = input.uv * scale + offset;
-    float4 surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv);
-    return surfaceColor * MaskTexture.Sample(BasicSampler, input.uv) * colorTint;
+    //masking
+    float4 surfaceColor =
+        SurfaceTexture.Sample(BasicSampler, input.uv) *
+        colorTint; //* MaskTexture.Sample(BasicSampler, input.uv);
+
+    //ambient
+    float3 ambientTerm = ambientColor * surfaceColor.xyz;
+
+    //return surfaceColor * MaskTexture.Sample(BasicSampler, input.uv);
+    //return float4(input.normal, 1);
+    //return float4(cameraPosition, 1);
+    //return float4(directionalLight.color, 1);
+    //return float4(diffuseTerm, 1);
+    //return float4(diffuseTerm + ambientTerm, 1);
+    float3 finalColor;
+    for (int i = 0; i < 5; i++)
+    {
+        switch (lights[i].type)
+        {
+            case LIGHT_TYPE_DIRECTIONAL:
+                finalColor += DirectionalLight(input, lights[i], surfaceColor.xyz);
+                break;
+            case LIGHT_TYPE_POINT:
+                finalColor += PointLight(input, lights[i], surfaceColor.xyz);
+                break;
+            case LIGHT_TYPE_SPOT:
+                break;
+        }
+    }
+
+    return float4(finalColor + ambientTerm, 1);
+
 }

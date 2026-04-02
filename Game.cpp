@@ -66,6 +66,7 @@ Game::Game()
 
 	Graphics::Context->PSSetConstantBuffers(0, 1, m_pPSConstantBuffer.GetAddressOf());
 
+	CreateLights();
 	CreateGeometry();
 	CreateEntities(vertexShader, pixelShader);
 
@@ -103,6 +104,11 @@ Game::Game()
 	m_entitiesList[9].GetTransform().MoveAbsolute(6.0f, 0.0f, 10.0f);
 	m_entitiesList[10].GetTransform().MoveAbsolute(9.0f, 0.0f, 0.0f);
 	m_entitiesList[11].GetTransform().MoveAbsolute(12.0f, 0.0f, -10.0f);
+
+	//assign lights
+	for (GameEntity& entity : m_entitiesList) {
+		entity.m_PSConstantBuffer.m_lights = m_lights;
+	}
 
 	// Set initial graphics API state
 	//  - These settings persist until we change them
@@ -240,7 +246,7 @@ void Game::CreateEntities(
 		Window::AspectRatio(),
 		DirectX::XMFLOAT3(0.0f, 0.0f, -1.0f),
 		DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
-		0.5 * std::numbers::pi_v<float>,
+		0.5f * std::numbers::pi_v<float>,
 		0.01f,
 		999.0f,
 		1.0f,
@@ -252,7 +258,7 @@ void Game::CreateEntities(
 		Window::AspectRatio(),
 		DirectX::XMFLOAT3(-0.5f, 0.0f, -1.0f),
 		DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f),
-		0.4 * std::numbers::pi_v<float>,
+		0.4f * std::numbers::pi_v<float>,
 		0.01f,
 		999.0f,
 		1.0f,
@@ -316,8 +322,8 @@ void Game::CreateEntities(
 		DirectX::XMFLOAT2(0.0f, 0.0f),
 		a_pVertexShader,
 		a_pPixelShader);
-	std::shared_ptr<Material> blue = std::make_shared<Material>(
-		DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f),
+	std::shared_ptr<Material> white = std::make_shared<Material>(
+		DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
 		a_pVertexShader,
 		a_pPixelShader);
 	std::shared_ptr<Material> green = std::make_shared<Material>(
@@ -329,21 +335,51 @@ void Game::CreateEntities(
 	red->AddTextureSRV(1, maskSRV);
 	red->AddSampler(0, sampler);
 
-	blue->AddTextureSRV(0, bambooSRV);
-	blue->AddTextureSRV(1, maskSRV);
-	blue->AddSampler(0, sampler);
+	white->AddTextureSRV(0, bambooSRV);
+	white->AddTextureSRV(1, maskSRV);
+	white->AddSampler(0, sampler);
 
 	green->AddTextureSRV(0, rocksSRV);
 	green->AddTextureSRV(1, maskSRV);
 	green->AddSampler(0, sampler);
 
 	m_entitiesList.push_back(GameEntity(m_pCube, red));
-	m_entitiesList.push_back(GameEntity(m_pCylinder, blue));
+	m_entitiesList.push_back(GameEntity(m_pCylinder, white));
 	m_entitiesList.push_back(GameEntity(m_pHelix, green));
 
 	m_entitiesList[0].GetTransform().MoveAbsolute(0.0f, 0.0f, 10.0f);
 	m_entitiesList[1].GetTransform().MoveAbsolute(3.0f, 0.0f, 0.0f);
 	m_entitiesList[2].GetTransform().MoveAbsolute(6.0f, 0.0f, -10.0f);
+}
+
+void Game::CreateLights()
+{
+	//directional
+	m_lights[0].m_Type = LIGHT_TYPE_DIRECTIONAL;
+	m_lights[0].m_Direction = DirectX::XMFLOAT3{-1.0f, 0.0f, 0.0f};
+	m_lights[0].m_Color = DirectX::XMFLOAT3{1.0f, 1.0f, 1.0f};
+	m_lights[0].m_Intensity = 1.0f;
+
+	m_lights[1].m_Type = LIGHT_TYPE_POINT;
+	m_lights[1].m_Position = DirectX::XMFLOAT3{0.0f, 0.0f, 0.0f};
+	m_lights[1].m_Color = DirectX::XMFLOAT3{1.0f, 1.0f, 1.0f};
+	m_lights[1].m_Intensity = 1.0f;
+	m_lights[1].m_Range = 10.0f;
+
+	m_lights[2].m_Type = LIGHT_TYPE_DIRECTIONAL;
+	m_lights[2].m_Direction = DirectX::XMFLOAT3{0.0f, 1.0f, 0.0f};
+	m_lights[2].m_Color = DirectX::XMFLOAT3{0.0f, 1.0f, 0.0f};
+	m_lights[2].m_Intensity = 1.0f;
+
+	m_lights[3].m_Type = LIGHT_TYPE_DIRECTIONAL;
+	m_lights[3].m_Direction = DirectX::XMFLOAT3{0.0f, -1.0f, 0.0f};
+	m_lights[3].m_Color = DirectX::XMFLOAT3{1.0f, 0.0f, 1.0f};
+	m_lights[3].m_Intensity = 1.0f;
+
+	m_lights[4].m_Type = LIGHT_TYPE_DIRECTIONAL;
+	m_lights[4].m_Direction = DirectX::XMFLOAT3{0.0f, 0.0f, 1.0f};
+	m_lights[4].m_Color = DirectX::XMFLOAT3{0.0f, 1.0f, 1.0f};
+	m_lights[4].m_Intensity = 1.0f;
 }
 
 
@@ -591,7 +627,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	{
 		for (GameEntity& entity : m_entitiesList) {
 			entity.GetMaterial()->BindTexturesAndSamplers();
-			entity.Draw(m_pVSConstantBuffer, m_pPSConstantBuffer, m_pActiveCamera);
+			entity.Draw(m_pVSConstantBuffer, m_pPSConstantBuffer, m_pActiveCamera, m_ambientColor);
 		}
 	}
 

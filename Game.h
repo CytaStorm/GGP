@@ -5,11 +5,13 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <array>
 #include "Mesh.h"
 #include "BufferStructs.h"
 #include "GameEntity.h"
 #include "Camera.h"
 #include "Material.h"
+#include "Light.h"
 
 class Game
 {
@@ -46,8 +48,10 @@ private:
 
 	void CreateGeometry();
 	void CreateEntities(
-		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader, 
+		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
 		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader);
+
+	void CreateLights();
 
 
 	// Note the usage of ComPtr below
@@ -72,6 +76,12 @@ private:
 	float m_menuWidth = 400;
 	float m_menuHeight = 600;
 	bool m_hideHeader = false;
+
+	//shading
+	DirectX::XMFLOAT3 m_ambientColor = { 0.1f, 0.1f, 0.25f };
+
+	//Light
+	std::array<Light, 5> m_lights;
 
 	//Meshes
 	std::shared_ptr<Mesh> m_pCube;

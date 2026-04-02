@@ -8,14 +8,14 @@
 class GameEntity
 {
 private:
-	VertexShaderConstantBuffer m_VSConstantBuffer = VertexShaderConstantBuffer();
-	PSConstantBuffer m_PSConstantBuffer = PSConstantBuffer();
 
 	Transform m_transform;
 	std::shared_ptr<Mesh> m_pMesh;
 	std::shared_ptr<Material> m_pMaterial;
 
 public:
+	VertexShaderConstantBuffer m_VSConstantBuffer = VertexShaderConstantBuffer();
+	PSConstantBuffer m_PSConstantBuffer = PSConstantBuffer();
 
 	GameEntity(std::shared_ptr<Mesh> a_pMesh, std::shared_ptr<Material> a_pMaterial);
 	~GameEntity();
@@ -26,7 +26,8 @@ public:
 	void Draw(
 		Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer,
 		Microsoft::WRL::ComPtr<ID3D11Buffer> a_PSConstantBuffer,
-		std::shared_ptr<Camera> a_camera);
+		std::shared_ptr<Camera> a_camera,
+		DirectX::XMFLOAT3 a_ambientColor);
 
 	std::shared_ptr<Material> GetMaterial();
 	void SetMaterial(std::shared_ptr<Material> a_pMaterial);

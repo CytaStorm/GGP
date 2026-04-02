@@ -32,7 +32,8 @@ Transform& GameEntity::GetTransform()
 void GameEntity::Draw(
 	Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer,
 	Microsoft::WRL::ComPtr<ID3D11Buffer> a_PSConstantBuffer,
-	std::shared_ptr<Camera> a_camera)
+	std::shared_ptr<Camera> a_camera,
+	DirectX::XMFLOAT3 a_ambientColor)
 {
 
 	Graphics::Context->VSSetShader(m_pMaterial->GetVertexShader().Get(), 0, 0);
@@ -45,12 +46,15 @@ void GameEntity::Draw(
 	m_VSConstantBuffer.m_worldMatrix = m_transform.GetWorldMatrix();
 	m_VSConstantBuffer.m_projectionMatrix = a_camera->GetProjectionMatrix();
 	m_VSConstantBuffer.m_viewMatrix = a_camera->GetViewMatrix();
+	m_VSConstantBuffer.m_worldInverseTranspose = m_transform.GetWorldInverseTransposeMatrix();
 
 	//pixel shader buffer
 	m_PSConstantBuffer.m_colorTint = m_pMaterial->GetColorTint();
 	m_PSConstantBuffer.m_timeElapsedMs = m_lifetimeMs;
 	m_PSConstantBuffer.m_scale = m_pMaterial->GetUVscale();
 	m_PSConstantBuffer.m_offset = m_pMaterial->GetUVoffset();
+	m_PSConstantBuffer.m_cameraPosition = a_camera->GetTransform().GetPosition();
+	m_PSConstantBuffer.m_ambientColor = a_ambientColor;
 
 	//memcpy shader
 	//vertex shader buffer
