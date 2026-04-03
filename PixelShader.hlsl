@@ -31,6 +31,7 @@ cbuffer PixelcBuffer : register(b0)
     float3 ambientColor;
 }
 
+
 float3 Attenuate(Light light, float3 worldPos)
 {
     float dist = distance(light.position, worldPos);
@@ -83,6 +84,19 @@ float3 DirectionalLight(VertexToPixel input, Light light, float3 surfaceColor)
     return diffuseTerm + specularTerm;
 }
 
+float3 SpotLight(VertexToPixel input, Light light, float3 surfaceColor)
+{
+    float lightToPixel = light.position - input.worldPosition;
+    float pixelAngle = saturate(dot(lightToPixel, light.direction));
+
+    float cosOuter = cos(light.spotOuterAngle);
+    float cosInner = cos(light.spotInnerAngle);
+    float fallOffRange = cosOuter - cosInner;
+
+    float spotTerm = saturate((cosOuter - pixelAngle) / fallOffRange);
+
+    return PointLight(input, light, surfaceColor) * spotTerm;
+}
 // --------------------------------------------------------
 // The entry point (main method) for our pixel shader
 // 
@@ -122,6 +136,7 @@ float4 main(VertexToPixel input) : SV_TARGET
                 finalColor += PointLight(input, lights[i], surfaceColor.xyz);
                 break;
             case LIGHT_TYPE_SPOT:
+                finalColor += SpotLight(input, lights[i], surfaceColor.xyz);
                 break;
         }
     }

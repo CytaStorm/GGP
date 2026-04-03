@@ -101,5 +101,8 @@ private:
 	//Cameras
 	std::vector<std::shared_ptr<Camera>> m_camerasList;
 	std::shared_ptr<Camera> m_pActiveCamera;
+
+	//Updates lights in entity buffers
+	void UpdateLights();
 };
 

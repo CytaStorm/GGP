@@ -376,10 +376,14 @@ void Game::CreateLights()
 	m_lights[3].m_Color = DirectX::XMFLOAT3{1.0f, 0.0f, 1.0f};
 	m_lights[3].m_Intensity = 1.0f;
 
-	m_lights[4].m_Type = LIGHT_TYPE_DIRECTIONAL;
+	m_lights[4].m_Type = LIGHT_TYPE_SPOT;
 	m_lights[4].m_Direction = DirectX::XMFLOAT3{0.0f, 0.0f, 1.0f};
-	m_lights[4].m_Color = DirectX::XMFLOAT3{0.0f, 1.0f, 1.0f};
+	m_lights[4].m_Color = DirectX::XMFLOAT3{1.0f, 1.0f, 1.0f};
+	m_lights[4].m_Position = DirectX::XMFLOAT3{4.0f, 0.0f, -2.0f};
+	m_lights[4].m_SpotOuterAngle = 80 * 3.14f / 180;
+	m_lights[4].m_SpotInnerAngle = 60 * 3.14f / 180;
 	m_lights[4].m_Intensity = 1.0f;
+	m_lights[4].m_Range = 100.0f;
 }
 
 
@@ -557,6 +561,56 @@ void Game::BuildUI() {
 		ImGui::TreePop();
 	};
 
+
+	if (ImGui::TreeNode("Lights")) {
+		if (ImGui::DragFloat3("Ambient Lighting Color", &m_ambientColor.x, 0.1f, 0.0f, 1.0f)) {
+
+		}
+
+		for (Light& light : m_lights) {
+			ImGui::PushID(&light);
+			const char* lightType;
+			switch (light.m_Type) {
+			case 0:
+				lightType = "Directional";
+				break;
+			case 1:
+				lightType = "Point";
+				break;
+			case 2:
+				lightType = "Spot";
+				break;
+			default:
+				lightType = "ERROR";
+				break;
+			}
+
+			if (ImGui::TreeNode("", "%s Light", lightType)) {
+				if (ImGui::DragFloat3("Position", &light.m_Position.x, 0.1f, 0.0f, 10.0f))
+				{
+					UpdateLights();
+				}
+				if (ImGui::DragFloat3("Direction", &light.m_Direction.x, 0.1f, -10.0f, 10.0f)) {
+					//normalize direction
+					DirectX::XMVECTOR normalized = DirectX::XMLoadFloat3(&light.m_Direction);
+					normalized = DirectX::XMVector3Normalize(normalized);
+					DirectX::XMStoreFloat3(&light.m_Direction, normalized);
+					UpdateLights();
+				}
+				if (ImGui::DragFloat3("Color", &light.m_Color.x, 0.1f, 0.0f, 1.0f))
+				{
+					UpdateLights();
+				}
+				if (ImGui::DragFloat("Intensity", &light.m_Intensity, 0.1f, 0.0f, 10.0f))
+				{
+					UpdateLights();
+				}
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
+		ImGui::TreePop();
+	}
 	//hide header
 	ImGui::Checkbox("Hide header?", &m_hideHeader);
 	//ending
@@ -648,6 +702,13 @@ void Game::Draw(float deltaTime, float totalTime)
 			1,
 			Graphics::BackBufferRTV.GetAddressOf(),
 			Graphics::DepthBufferDSV.Get());
+	}
+
+}
+
+void Game::UpdateLights() {
+	for (GameEntity& entity : m_entitiesList) {
+		entity.m_PSConstantBuffer.m_lights = m_lights;
 	}
 }
 
