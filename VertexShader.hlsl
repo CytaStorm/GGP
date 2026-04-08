@@ -24,6 +24,7 @@ struct VertexShaderInput
 	float3 localPosition	: POSITION;     // XYZ position
     float2 uv				: TEXCOORD;
     float3 normal			: NORMAL;
+    float3 tangent			: TANGENT;
 };
 
 
@@ -53,6 +54,7 @@ VertexToPixel main( VertexShaderInput input )
     output.uv = input.uv;
     output.normal = mul((float3x3) worldInverseTranspose, input.normal);
     output.worldPosition = mul(world, float4(input.localPosition, 1)).xyz;
+    output.tangent = input.tangent;
 	// Pass the color through 
 	// - The values will be interpolated per-pixel by the rasterizer
 	// - We don't need to alter it here, but we do need to send it to the pixel shader

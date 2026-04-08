@@ -4,7 +4,9 @@
 #define LIGHT_TYPE_SPOT 2
 
 Texture2D SurfaceTexture : register(t0);
-Texture2D MaskTexture: register(t1);
+Texture2D NormalTexture : register(t1);
+Texture2D MaskTexture: register(t2);
+
 SamplerState BasicSampler : register(s0);
 
 struct Light
@@ -125,6 +127,7 @@ float4 main(VertexToPixel input) : SV_TARGET
     //return float4(diffuseTerm, 1);
     //return float4(diffuseTerm + ambientTerm, 1);
     float3 finalColor;
+    return NormalTexture.Sample(BasicSampler, input.uv);
     for (int i = 0; i < 5; i++)
     {
         switch (lights[i].type)

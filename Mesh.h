@@ -19,6 +19,7 @@ private:
 	void CreateVertexBuffer(UINT ta_vertexCount, const Vertex* a_pFirstVertex);
 	void CreateIndexBuffer(UINT a_indexCount, const UINT* a_pFirstIndex);
 
+	void CalculateTangents(Vertex* a_verts, int a_numVerts, unsigned int* a_indicies, int a_numIndicies);
 
 public:
 	Mesh(Vertex a_vertices[], UINT a_indices[], int a_verticesLength, int a_indiciesLength);

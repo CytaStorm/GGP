@@ -167,7 +167,7 @@ void Game::LoadVertexShader(
 		a_pVertexShader.GetAddressOf());// ID3D11VertexShader**
 	
 	//input layout
-	D3D11_INPUT_ELEMENT_DESC inputElements[3] = {};
+	D3D11_INPUT_ELEMENT_DESC inputElements[4] = {};
 
 	// Set up the first element - a position, which is 3 float values
 	inputElements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;				// Most formats are described as color channels; really it just means "Three 32-bit floats"
@@ -184,10 +184,15 @@ void Game::LoadVertexShader(
 	inputElements[2].SemanticName = "NORMAL";							
 	inputElements[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	
 
+	//set up tangent
+	inputElements[3].Format = DXGI_FORMAT_R32G32B32_FLOAT;		
+	inputElements[3].SemanticName = "TANGENT";							
+	inputElements[3].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	
+
 	// Create the input layout, verifying our description against actual shader code
 	Graphics::Device->CreateInputLayout(
 		inputElements,							// An array of descriptions
-		3,										// How many elements in that array?
+		4,										// How many elements in that array?
 		vertexShaderBlob->GetBufferPointer(),	// Pointer to the code of a shader that uses this layout
 		vertexShaderBlob->GetBufferSize(),		// Size of the shader code that uses this layout
 		m_pVSInputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
@@ -272,17 +277,36 @@ void Game::CreateEntities(
 	m_pActiveCamera = cameraOrthographic;
 
 
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bambooSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> flatNormalSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cobblestoneSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cobblestoneNormalSRV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> maskSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rocksSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushionSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushionNormalSRV;
 	//for A7
 	//create game entities and their materials
 	CreateWICTextureFromFile(
 		Graphics::Device.Get(),
 		Graphics::Context.Get(),
-		L"Assets/Textures/bamboo/4k-bamboo-diffuse.jpg",
+		L"Assets/Textures/flat_normals.png",
 		0,
-		bambooSRV.GetAddressOf()
+		flatNormalSRV.GetAddressOf()
+	);
+
+	CreateWICTextureFromFile(
+		Graphics::Device.Get(),
+		Graphics::Context.Get(),
+		L"Assets/Textures/cobblestone.png",
+		0,
+		cobblestoneSRV.GetAddressOf()
+	);
+
+	CreateWICTextureFromFile(
+		Graphics::Device.Get(),
+		Graphics::Context.Get(),
+		L"Assets/Textures/cobblestone_normals.png",
+		0,
+		cobblestoneNormalSRV.GetAddressOf()
 	);
 
 	CreateWICTextureFromFile(
@@ -296,10 +320,19 @@ void Game::CreateEntities(
 	CreateWICTextureFromFile(
 		Graphics::Device.Get(),
 		Graphics::Context.Get(),
-		L"Assets/Textures/rocks/aerial_rocks_01_diff_4k.jpg",
+		L"Assets/Textures/cushion.png",
 		0,
-		rocksSRV.GetAddressOf()
+		cushionSRV.GetAddressOf()
 	);
+	
+	CreateWICTextureFromFile(
+		Graphics::Device.Get(),
+		Graphics::Context.Get(),
+		L"Assets/Textures/cushion_normals.png",
+		0,
+		cushionNormalSRV.GetAddressOf()
+	);
+
 
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
 
@@ -331,16 +364,19 @@ void Game::CreateEntities(
 		a_pVertexShader,
 		a_pPixelShader);
 
-	red->AddTextureSRV(0, rocksSRV);
-	red->AddTextureSRV(1, maskSRV);
+	red->AddTextureSRV(0, cushionSRV);
+	red->AddTextureSRV(1, flatNormalSRV);
+	red->AddTextureSRV(2, maskSRV);
 	red->AddSampler(0, sampler);
 
-	white->AddTextureSRV(0, bambooSRV);
-	white->AddTextureSRV(1, maskSRV);
+	white->AddTextureSRV(0, cobblestoneSRV);
+	white->AddTextureSRV(1, cobblestoneNormalSRV);
+	white->AddTextureSRV(2, maskSRV);
 	white->AddSampler(0, sampler);
 
-	green->AddTextureSRV(0, rocksSRV);
-	green->AddTextureSRV(1, maskSRV);
+	green->AddTextureSRV(0, cushionSRV);
+	green->AddTextureSRV(1, cushionNormalSRV);
+	green->AddTextureSRV(2, maskSRV);
 	green->AddSampler(0, sampler);
 
 	m_entitiesList.push_back(GameEntity(m_pCube, red));
