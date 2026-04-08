@@ -41,6 +41,17 @@ float3 Attenuate(Light light, float3 worldPos)
     return att * att;
 }
 
+float3 CalculatePhong(VertexToPixel input, Light light, float3 surfaceColor)
+{
+ float3 refl = reflect(-light.direction, input.normal);
+
+    float RdotV = saturate(dot(refl, normalize(input.worldPosition - cameraPosition)));
+    return pow(RdotV, 256) *
+       light.color *
+       light.intensity *
+       surfaceColor.xyz;
+}
+
 float3 PointLight(VertexToPixel input, Light light, float3 surfaceColor)
 {
     //diffuse
@@ -52,15 +63,7 @@ float3 PointLight(VertexToPixel input, Light light, float3 surfaceColor)
         surfaceColor;  
 
     //phong
-    float3 refl = reflect(-light.direction, input.normal);
-
-    float RdotV = saturate(dot(refl, normalize(input.worldPosition - cameraPosition)));
-    float3 specularTerm =
-       pow(RdotV, 256) * 
-       light.color * 
-       light.intensity * 
-       surfaceColor.xyz;
-
+    float3 specularTerm = CalculatePhong(input, light, surfaceColor);
     return (diffuseTerm + specularTerm) * Attenuate(light, input.worldPosition);
 }
 
@@ -74,14 +77,7 @@ float3 DirectionalLight(VertexToPixel input, Light light, float3 surfaceColor)
         surfaceColor;  
 
     //phong
-    float3 refl = reflect(-light.direction, input.normal);
-    
-    float RdotV = saturate(dot(refl, normalize(input.worldPosition - cameraPosition)));
-    float3 specularTerm =
-       pow(RdotV, 256) * 
-       light.color * 
-       light.intensity * 
-       surfaceColor.xyz;
+    float3 specularTerm = CalculatePhong(input, light, surfaceColor);
 
     return diffuseTerm + specularTerm;
 }
@@ -99,6 +95,21 @@ float3 SpotLight(VertexToPixel input, Light light, float3 surfaceColor)
 
     return PointLight(input, light, surfaceColor) * spotTerm;
 }
+
+float3 CalculateNormals(VertexToPixel input)
+{
+    //corrected normal
+    float4 normalFromTexture = NormalTexture.Sample(BasicSampler, input.uv);
+    float3 unpackedNormal = normalize(normalFromTexture * 2.0f - 1.0f);
+
+    float3 N = normalize(input.normal);
+    float3 T = normalize(input.tangent - N * dot(input.tangent, N));
+    float3 B = cross(T, N);
+
+    float3x3 TBN = float3x3(T, B, N);
+    
+    return mul(unpackedNormal, TBN);
+}
 // --------------------------------------------------------
 // The entry point (main method) for our pixel shader
 // 
@@ -110,7 +121,6 @@ float3 SpotLight(VertexToPixel input, Light light, float3 surfaceColor)
 // --------------------------------------------------------
 float4 main(VertexToPixel input) : SV_TARGET
 {
-    input.normal = normalize(input.normal);
     input.uv = input.uv * scale + offset;
     //masking
     float4 surfaceColor =
@@ -120,14 +130,10 @@ float4 main(VertexToPixel input) : SV_TARGET
     //ambient
     float3 ambientTerm = ambientColor * surfaceColor.xyz;
 
-    //return surfaceColor * MaskTexture.Sample(BasicSampler, input.uv);
-    //return float4(input.normal, 1);
-    //return float4(cameraPosition, 1);
-    //return float4(directionalLight.color, 1);
-    //return float4(diffuseTerm, 1);
-    //return float4(diffuseTerm + ambientTerm, 1);
+    //normals
+    input.normal = CalculateNormals(input);
     float3 finalColor;
-    return NormalTexture.Sample(BasicSampler, input.uv);
+
     for (int i = 0; i < 5; i++)
     {
         switch (lights[i].type)
@@ -144,6 +150,7 @@ float4 main(VertexToPixel input) : SV_TARGET
         }
     }
 
-    return float4(finalColor + ambientTerm, 1);
+    return float4(input.tangent, 1);
+    //return float4(finalColor + ambientTerm, 1);
 
 }
