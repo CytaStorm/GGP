@@ -30,22 +30,22 @@ public:
 	void OnResize();
 
 
-private:
-
-	// Initialization helper methods - feel free to customize, combine, remove, etc.
-	void LoadVertexShader(
+// Initialization helper methods - feel free to customize, combine, remove, etc.
+	static void LoadVertexShader(
+		Microsoft::WRL::ComPtr<ID3D11InputLayout>& a_pInputLayout,
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
 		Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pVertexShaderConstantBuffer,
 		const std::wstring a_fileName);
 
 	//templated function in case other sized constant buffer structs are to be used
 	template <typename PSConstantBufferStruct>
-	void LoadPixelShader(
+	static void LoadPixelShader(
 		PSConstantBufferStruct value,
 		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader,
 		Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pPixelShaderConstantBuffer,
 		const std::wstring a_fileName);
 
+private:
 	void CreateGeometry();
 	void CreateEntities(
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,

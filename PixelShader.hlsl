@@ -64,6 +64,9 @@ float3 PointLight(VertexToPixel input, Light light, float3 surfaceColor)
 
     //phong
     float3 specularTerm = CalculatePhong(input, light, surfaceColor);
+
+    specularTerm *= any(diffuseTerm);
+
     return (diffuseTerm + specularTerm) * Attenuate(light, input.worldPosition);
 }
 
@@ -78,6 +81,7 @@ float3 DirectionalLight(VertexToPixel input, Light light, float3 surfaceColor)
 
     //phong
     float3 specularTerm = CalculatePhong(input, light, surfaceColor);
+    specularTerm *= any(diffuseTerm);
 
     return diffuseTerm + specularTerm;
 }
@@ -150,7 +154,6 @@ float4 main(VertexToPixel input) : SV_TARGET
         }
     }
 
-    return float4(input.tangent, 1);
-    //return float4(finalColor + ambientTerm, 1);
+    return float4(finalColor + ambientTerm, 1);
 
 }

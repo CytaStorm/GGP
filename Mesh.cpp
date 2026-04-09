@@ -83,9 +83,9 @@ Mesh::Mesh(Vertex a_vertices[], UINT a_indices[], int a_verticesLength, int a_in
 	XMFLOAT4 blue = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
 
 
+	CalculateTangents(a_vertices, a_verticesLength, a_indices, a_indicesLength);
 	CreateVertexBuffer(a_verticesLength, &a_vertices[0]);
 	CreateIndexBuffer(a_indicesLength, &a_indices[0]);
-	CalculateTangents(a_vertices, a_verticesLength, a_indices, a_indicesLength);
 }
 
 Mesh::Mesh(const char* a_fileName)
@@ -340,11 +340,11 @@ Mesh::Mesh(const char* a_fileName)
 	// Close the file
 	obj.close();
 
+	CalculateTangents(&finalVertices[0], finalVertices.size(), &finalIndices[0], finalIndices.size());
 	// NEXT: Create the actual buffers!
 	CreateVertexBuffer(static_cast<UINT>(finalVertices.size()), &finalVertices[0]);
 	CreateIndexBuffer(static_cast<UINT>(finalIndices.size()), &finalIndices[0]);
 
-	CalculateTangents(&finalVertices[0], finalVertices.size(), &finalIndices[0], finalIndices.size());
 	// *************************************
 	//      IMPLEMENTATION NOTES (2/2)
 	//

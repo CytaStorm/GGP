@@ -51,7 +51,7 @@ Game::Game()
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> normalsPixelShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> customPixelShader;
 
-	LoadVertexShader(vertexShader, m_pVSConstantBuffer, L"VertexShader.cso");
+	LoadVertexShader(m_pVSInputLayout, vertexShader, m_pVSConstantBuffer, L"VertexShader.cso");
 	LoadPixelShader<PSConstantBuffer>(
 		PSConstantBuffer(), pixelShader, m_pPSConstantBuffer, L"PixelShader.cso");
 	LoadPixelShader<PSConstantBuffer>(
@@ -153,6 +153,7 @@ Game::~Game()
 // - We'll have that byte code already loaded below
 // --------------------------------------------------------
 void Game::LoadVertexShader(
+	Microsoft::WRL::ComPtr<ID3D11InputLayout>& a_pInputLayout,
 	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
 	Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pVertexShaderConstantBuffer,
 	std::wstring a_fileName)
@@ -195,7 +196,7 @@ void Game::LoadVertexShader(
 		4,										// How many elements in that array?
 		vertexShaderBlob->GetBufferPointer(),	// Pointer to the code of a shader that uses this layout
 		vertexShaderBlob->GetBufferSize(),		// Size of the shader code that uses this layout
-		m_pVSInputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
+		a_pInputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
 
 	//Create & bind vertex shader constant buffer
 	D3D11_BUFFER_DESC VS_ConstantBufferDesc = {};

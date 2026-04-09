@@ -21,4 +21,9 @@ struct VertexToPixel
     float3 tangent			: TANGENT;
 };
 
+struct VertexToPixel_Sky
+{
+    float4 position : SV_POSITION;
+    float3 sampleDir : DIRECTION;
+};
 #endif
