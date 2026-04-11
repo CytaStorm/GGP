@@ -12,6 +12,7 @@
 #include "Camera.h"
 #include "Material.h"
 #include "Light.h"
+#include "Sky.h"
 
 class Game
 {
@@ -30,7 +31,7 @@ public:
 	void OnResize();
 
 
-// Initialization helper methods - feel free to customize, combine, remove, etc.
+	// Initialization helper methods - feel free to customize, combine, remove, etc.
 	static void LoadVertexShader(
 		Microsoft::WRL::ComPtr<ID3D11InputLayout>& a_pInputLayout,
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
@@ -104,5 +105,7 @@ private:
 
 	//Updates lights in entity buffers
 	void UpdateLights();
-};
 
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pSamplerState;
+	Sky m_sky;
+};

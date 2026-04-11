@@ -3,7 +3,7 @@
 #include "Light.h"
 #include <array>
 
- struct VertexShaderConstantBuffer
+struct VertexShaderConstantBuffer
 {
 	DirectX::XMFLOAT4X4 m_worldMatrix;
 	DirectX::XMFLOAT4X4 m_projectionMatrix;
@@ -23,4 +23,12 @@ struct PSConstantBuffer {
 	DirectX::XMFLOAT3 m_ambientColor;
 
 	PSConstantBuffer();
+};
+
+struct SkyVSConstantBuffer {
+	DirectX::XMFLOAT4X4 m_projectionMatrix;
+	DirectX::XMFLOAT4X4 m_viewMatrix;
+
+	SkyVSConstantBuffer();
+	SkyVSConstantBuffer(DirectX::XMFLOAT4X4 a_projectionMatrix, DirectX::XMFLOAT4X4 a_viewMatrix);
 };

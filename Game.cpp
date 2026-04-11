@@ -66,9 +66,25 @@ Game::Game()
 
 	Graphics::Context->PSSetConstantBuffers(0, 1, m_pPSConstantBuffer.GetAddressOf());
 
+	//Sky
 	CreateLights();
 	CreateGeometry();
+
+	//sampler state created in here
 	CreateEntities(vertexShader, pixelShader);
+
+	m_sky = Sky(
+		m_pCube,
+		L"Assets/Textures/Skies/Planet/front.png",
+		L"Assets/Textures/Skies/Planet/back.png",
+		L"Assets/Textures/Skies/Planet/left.png",
+		L"Assets/Textures/Skies/Planet/right.png",
+		L"Assets/Textures/Skies/Planet/up.png",
+		L"Assets/Textures/Skies/Planet/down.png",
+		L"VertexShader_Sky.cso",
+		L"PixelShader_Sky.cso",
+		m_pSamplerState		
+	);
 
 
 	std::shared_ptr<Material> uvMaterial = std::make_shared<Material>(
@@ -334,9 +350,6 @@ void Game::CreateEntities(
 		cushionNormalSRV.GetAddressOf()
 	);
 
-
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
-
 	D3D11_SAMPLER_DESC samplerDesc = {};
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -347,7 +360,7 @@ void Game::CreateEntities(
 
 	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-	Graphics::Device->CreateSamplerState(&samplerDesc, sampler.GetAddressOf());
+	Graphics::Device->CreateSamplerState(&samplerDesc, m_pSamplerState.GetAddressOf());
 	
 	//create game entities and their materials
 	std::shared_ptr<Material> red = std::make_shared<Material>(
@@ -368,17 +381,17 @@ void Game::CreateEntities(
 	red->AddTextureSRV(0, cushionSRV);
 	red->AddTextureSRV(1, flatNormalSRV);
 	red->AddTextureSRV(2, maskSRV);
-	red->AddSampler(0, sampler);
+	red->AddSampler(0, m_pSamplerState);
 
 	white->AddTextureSRV(0, cobblestoneSRV);
 	white->AddTextureSRV(1, cobblestoneNormalSRV);
 	white->AddTextureSRV(2, maskSRV);
-	white->AddSampler(0, sampler);
+	white->AddSampler(0, m_pSamplerState);
 
 	green->AddTextureSRV(0, cushionSRV);
 	green->AddTextureSRV(1, cushionNormalSRV);
 	green->AddTextureSRV(2, maskSRV);
-	green->AddSampler(0, sampler);
+	green->AddSampler(0, m_pSamplerState);
 
 	m_entitiesList.push_back(GameEntity(m_pCube, red));
 	m_entitiesList.push_back(GameEntity(m_pCylinder, white));
@@ -720,6 +733,7 @@ void Game::Draw(float deltaTime, float totalTime)
 			entity.GetMaterial()->BindTexturesAndSamplers();
 			entity.Draw(m_pVSConstantBuffer, m_pPSConstantBuffer, m_pActiveCamera, m_ambientColor);
 		}
+		m_sky.Draw(m_pActiveCamera);
 	}
 
 	// Frame END

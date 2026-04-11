@@ -2,8 +2,8 @@
 
 cbuffer BufferStruct : register(b0)
 {
-    matrix view;
     matrix projection;
+    matrix view;
 }
 
 // Struct representing a single vertex worth of data
@@ -27,12 +27,12 @@ struct VertexShaderInput
 VertexToPixel_Sky main( VertexShaderInput input )
 {
     VertexToPixel_Sky output;
-    matrix editedMatrix = view;
-    editedMatrix._14 = 0;
-    editedMatrix._24 = 0;
-    editedMatrix._34 = 0;
+    matrix viewNoTranslate = view;
+    viewNoTranslate._14 = 0;
+    viewNoTranslate._24 = 0;
+    viewNoTranslate._34 = 0;
 
-    output.position = mul(mul(projection, view), float4(input.localPosition, 1));
+    output.position = mul(mul(projection, viewNoTranslate), float4(input.localPosition, 1));
     output.position.z = output.position.w;
     output.sampleDir = input.localPosition;
 

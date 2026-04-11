@@ -340,7 +340,11 @@ Mesh::Mesh(const char* a_fileName)
 	// Close the file
 	obj.close();
 
-	CalculateTangents(&finalVertices[0], finalVertices.size(), &finalIndices[0], finalIndices.size());
+	CalculateTangents(
+		&finalVertices[0], 
+		static_cast<UINT>(finalVertices.size()), 
+		&finalIndices[0], 
+		static_cast<UINT>(finalIndices.size()));
 	// NEXT: Create the actual buffers!
 	CreateVertexBuffer(static_cast<UINT>(finalVertices.size()), &finalVertices[0]);
 	CreateIndexBuffer(static_cast<UINT>(finalIndices.size()), &finalIndices[0]);
