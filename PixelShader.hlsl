@@ -128,7 +128,7 @@ float4 main(VertexToPixel input) : SV_TARGET
     input.uv = input.uv * scale + offset;
     //masking
     float4 surfaceColor =
-        SurfaceTexture.Sample(BasicSampler, input.uv) *
+        pow(SurfaceTexture.Sample(BasicSampler, input.uv), 2.2) *
         colorTint; //* MaskTexture.Sample(BasicSampler, input.uv);
 
     //ambient
@@ -154,6 +154,6 @@ float4 main(VertexToPixel input) : SV_TARGET
         }
     }
 
-    return float4(finalColor + ambientTerm, 1);
+    return pow(float4(finalColor + ambientTerm, 1), (1.0 / 2.2));
 
 }
