@@ -20,7 +20,6 @@ struct PSConstantBuffer {
 	DirectX::XMFLOAT3 m_cameraPosition;
 	float m_timeElapsedMs; // 16
 	std::array<Light, 5> m_lights;
-	DirectX::XMFLOAT3 m_ambientColor;
 
 	PSConstantBuffer();
 };

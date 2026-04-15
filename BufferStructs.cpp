@@ -17,7 +17,6 @@ PSConstantBuffer::PSConstantBuffer()
 	m_offset = { 0, 0 };
 	m_timeElapsedMs = 0;
 	m_cameraPosition = { 0.0f, 0.0f, 0.0f };
-	m_ambientColor = { 0.0f, 0.0f, 0.0f };
 	for (int i = 0; i < 5; i++) {
 		m_lights[i] = Light{};
 	}

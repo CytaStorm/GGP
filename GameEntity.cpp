@@ -54,7 +54,6 @@ void GameEntity::Draw(
 	m_PSConstantBuffer.m_scale = m_pMaterial->GetUVscale();
 	m_PSConstantBuffer.m_offset = m_pMaterial->GetUVoffset();
 	m_PSConstantBuffer.m_cameraPosition = a_camera->GetTransform().GetPosition();
-	m_PSConstantBuffer.m_ambientColor = a_ambientColor;
 
 	//memcpy shader
 	//vertex shader buffer

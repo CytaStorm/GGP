@@ -380,17 +380,14 @@ void Game::CreateEntities(
 
 	red->AddTextureSRV(0, cushionSRV);
 	red->AddTextureSRV(1, flatNormalSRV);
-	red->AddTextureSRV(2, maskSRV);
 	red->AddSampler(0, m_pSamplerState);
 
 	white->AddTextureSRV(0, cobblestoneSRV);
 	white->AddTextureSRV(1, cobblestoneNormalSRV);
-	white->AddTextureSRV(2, maskSRV);
 	white->AddSampler(0, m_pSamplerState);
 
 	green->AddTextureSRV(0, cushionSRV);
 	green->AddTextureSRV(1, cushionNormalSRV);
-	green->AddTextureSRV(2, maskSRV);
 	green->AddSampler(0, m_pSamplerState);
 
 	m_entitiesList.push_back(GameEntity(m_pCube, red));
