@@ -1,5 +1,6 @@
 #include "Graphics.h"
 #include <dxgi1_6.h>
+#include <dxgidebug.h>
 
 // Tell the drivers to use high-performance GPU in multi-GPU systems (like laptops)
 extern "C"
@@ -189,6 +190,9 @@ HRESULT Graphics::Initialize(unsigned int windowWidth, unsigned int windowHeight
 // --------------------------------------------------------
 void Graphics::ShutDown()
 {
+	Microsoft::WRL::ComPtr<IDXGIDebug1> debug;
+	DXGIGetDebugInterface1(0, IID_PPV_ARGS(debug.GetAddressOf()));
+	debug->ReportLiveObjects(DXGI_DEBUG_D3D11, DXGI_DEBUG_RLO_IGNORE_INTERNAL);
 }
 
 

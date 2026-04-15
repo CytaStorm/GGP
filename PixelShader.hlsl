@@ -144,7 +144,7 @@ float3 DirectionalLight(VertexToPixel input, Light light, float3 albedoColor, fl
 
 float3 SpotLight(VertexToPixel input, Light light, float3 albedoColor, float roughness, float3 specularColor, float metalness)
 {
-    float lightToPixel = light.position - input.worldPosition;
+    float3 lightToPixel = light.position - input.worldPosition;
     float pixelAngle = saturate(dot(lightToPixel, light.direction));
 
     float cosOuter = cos(light.spotOuterAngle);
@@ -160,7 +160,7 @@ float3 CalculateNormals(VertexToPixel input)
 {
     //corrected normal
     float4 normalFromTexture = NormalMap.Sample(BasicSampler, input.uv);
-    float3 unpackedNormal = normalize(normalFromTexture * 2.0f - 1.0f);
+    float3 unpackedNormal = normalize(normalFromTexture * 2.0f - 1.0f).xyz;
 
     float3 N = normalize(input.normal);
     float3 T = normalize(input.tangent - N * dot(input.tangent, N));

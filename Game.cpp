@@ -9,6 +9,7 @@
 #include "Projection.h"
 #include <DirectXMath.h>
 #include "WICTextureLoader.h"
+#include "Helper.h"
 
 //ImGui includes
 #include "ImGui/imgui.h"
@@ -239,6 +240,7 @@ void Game::LoadPixelShader(
 		0,// No classes in this shader
 		a_pPixelShader.GetAddressOf());// ID3D11VertexShader**
 
+	a_pPixelShaderConstantBuffer.Reset();
 	//Create & bind pixel shader constant buffer
 	D3D11_BUFFER_DESC PS_ConstantBufferDesc = {};
 	PS_ConstantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -294,61 +296,25 @@ void Game::CreateEntities(
 	m_pActiveCamera = cameraOrthographic;
 
 
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> flatNormalSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cobblestoneSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cobblestoneNormalSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> maskSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushionSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushionNormalSRV;
-	//for A7
-	//create game entities and their materials
-	CreateWICTextureFromFile(
-		Graphics::Device.Get(),
-		Graphics::Context.Get(),
-		L"Assets/Textures/flat_normals.png",
-		0,
-		flatNormalSRV.GetAddressOf()
-	);
+	auto flatNormalSRV = Helper::LoadTexture(L"Assets/Textures/flat_normals.png");
 
-	CreateWICTextureFromFile(
-		Graphics::Device.Get(),
-		Graphics::Context.Get(),
-		L"Assets/Textures/cobblestone.png",
-		0,
-		cobblestoneSRV.GetAddressOf()
-	);
+	//bronze
+	auto bronzeAlbedo = Helper::LoadTexture(L"Assets/Textures/bronze_albedo.png");
+	auto bronzeRoughness = Helper::LoadTexture(L"Assets/Textures/bronze_roughness.png");
+	auto bronzeMetallic = Helper::LoadTexture(L"Assets/Textures/bronze_metal.png");
+	auto bronzeNormal = Helper::LoadTexture(L"Assets/Textures/bronze_normals.png");
 
-	CreateWICTextureFromFile(
-		Graphics::Device.Get(),
-		Graphics::Context.Get(),
-		L"Assets/Textures/cobblestone_normals.png",
-		0,
-		cobblestoneNormalSRV.GetAddressOf()
-	);
+	//scratched
+	auto scratchedAlbedo = Helper::LoadTexture(L"Assets/Textures/scratched_albedo.png");
+	auto scratchedRoughness = Helper::LoadTexture(L"Assets/Textures/scratched_roughness.png");
+	auto scratchedMetallic = Helper::LoadTexture(L"Assets/Textures/scratched_metal.png");
+	auto scratchedNormal = Helper::LoadTexture(L"Assets/Textures/scratched_normals.png");
 
-	CreateWICTextureFromFile(
-		Graphics::Device.Get(),
-		Graphics::Context.Get(),
-		L"Assets/Textures/alpha/black-paint-texture-stroke-isolated-white-clipping-mask-alpha-channel-enables-quick-isolation-black-paint-texture-379820722.png",
-		0,
-		maskSRV.GetAddressOf()
-	);
-
-	CreateWICTextureFromFile(
-		Graphics::Device.Get(),
-		Graphics::Context.Get(),
-		L"Assets/Textures/cushion.png",
-		0,
-		cushionSRV.GetAddressOf()
-	);
-	
-	CreateWICTextureFromFile(
-		Graphics::Device.Get(),
-		Graphics::Context.Get(),
-		L"Assets/Textures/cushion_normals.png",
-		0,
-		cushionNormalSRV.GetAddressOf()
-	);
+	//floor
+	auto floorAlbedo = Helper::LoadTexture(L"Assets/Textures/floor_albedo.png");
+	auto floorRoughness = Helper::LoadTexture(L"Assets/Textures/floor_roughness.png");
+	auto floorMetallic = Helper::LoadTexture(L"Assets/Textures/floor_metal.png");
+	auto floorNormal = Helper::LoadTexture(L"Assets/Textures/floor_normals.png");
 
 	D3D11_SAMPLER_DESC samplerDesc = {};
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -378,16 +344,22 @@ void Game::CreateEntities(
 		a_pVertexShader,
 		a_pPixelShader);
 
-	red->AddTextureSRV(0, cushionSRV);
-	red->AddTextureSRV(1, flatNormalSRV);
+	red->AddTextureSRV(0, bronzeAlbedo);
+	red->AddTextureSRV(1, bronzeNormal);
+	red->AddTextureSRV(2, bronzeRoughness);
+	red->AddTextureSRV(3, bronzeMetallic);
 	red->AddSampler(0, m_pSamplerState);
 
-	white->AddTextureSRV(0, cobblestoneSRV);
-	white->AddTextureSRV(1, cobblestoneNormalSRV);
+	white->AddTextureSRV(0, floorAlbedo);
+	white->AddTextureSRV(1, floorNormal);
+	white->AddTextureSRV(2, floorRoughness);
+	white->AddTextureSRV(3, floorMetallic);
 	white->AddSampler(0, m_pSamplerState);
 
-	green->AddTextureSRV(0, cushionSRV);
-	green->AddTextureSRV(1, cushionNormalSRV);
+	green->AddTextureSRV(0, scratchedAlbedo);
+	green->AddTextureSRV(1, scratchedNormal);
+	green->AddTextureSRV(2, scratchedRoughness);
+	green->AddTextureSRV(3, scratchedMetallic);
 	green->AddSampler(0, m_pSamplerState);
 
 	m_entitiesList.push_back(GameEntity(m_pCube, red));
