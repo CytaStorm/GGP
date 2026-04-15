@@ -4,7 +4,7 @@
 #include "Vertex.h"
 #include <DirectXMath.h>
 #include <memory>
-#include "mesh.h";
+#include "mesh.h"
 #include "Camera.h"
 #include "Material.h"
 #include "BufferStructs.h"
