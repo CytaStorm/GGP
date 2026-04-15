@@ -32,8 +32,7 @@ Transform& GameEntity::GetTransform()
 void GameEntity::Draw(
 	Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer,
 	Microsoft::WRL::ComPtr<ID3D11Buffer> a_PSConstantBuffer,
-	std::shared_ptr<Camera> a_camera,
-	DirectX::XMFLOAT3 a_ambientColor)
+	std::shared_ptr<Camera> a_camera)
 {
 
 	Graphics::Context->VSSetShader(m_pMaterial->GetVertexShader().Get(), 0, 0);

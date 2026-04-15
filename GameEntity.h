@@ -26,8 +26,7 @@ public:
 	void Draw(
 		Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer,
 		Microsoft::WRL::ComPtr<ID3D11Buffer> a_PSConstantBuffer,
-		std::shared_ptr<Camera> a_camera,
-		DirectX::XMFLOAT3 a_ambientColor);
+		std::shared_ptr<Camera> a_camera);
 
 	std::shared_ptr<Material> GetMaterial();
 	void SetMaterial(std::shared_ptr<Material> a_pMaterial);

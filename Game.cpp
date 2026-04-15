@@ -696,7 +696,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	{
 		for (GameEntity& entity : m_entitiesList) {
 			entity.GetMaterial()->BindTexturesAndSamplers();
-			entity.Draw(m_pVSConstantBuffer, m_pPSConstantBuffer, m_pActiveCamera, m_ambientColor);
+			entity.Draw(m_pVSConstantBuffer, m_pPSConstantBuffer, m_pActiveCamera);
 		}
 		m_sky.Draw(m_pActiveCamera);
 	}
