@@ -582,10 +582,6 @@ void Game::BuildUI() {
 
 
 	if (ImGui::TreeNode("Lights")) {
-		if (ImGui::DragFloat3("Ambient Lighting Color", &m_ambientColor.x, 0.1f, 0.0f, 1.0f)) {
-
-		}
-
 		for (Light& light : m_lights) {
 			ImGui::PushID(&light);
 			const char* lightType;

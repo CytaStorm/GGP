@@ -78,9 +78,6 @@ private:
 	float m_menuHeight = 600;
 	bool m_hideHeader = false;
 
-	//shading
-	DirectX::XMFLOAT3 m_ambientColor = { 0.1f, 0.1f, 0.25f };
-
 	//Light
 	std::array<Light, 5> m_lights;
 
