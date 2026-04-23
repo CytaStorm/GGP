@@ -7,6 +7,9 @@ cbuffer BufferStruct : register (b0)
     matrix projection;
     matrix view;
     matrix worldInverseTranspose;
+
+    matrix lightView;
+    matrix lightProjection;
 };
 
 // --------------------------------------------------------
@@ -41,5 +44,9 @@ VertexToPixel main( VertexShaderInput input )
 	// - The values will be interpolated per-pixel by the rasterizer
 	// - We don't need to alter it here, but we do need to send it to the pixel shader
 	// Whatever we return will make its way through the pipeline to the
+	//shadow
+    matrix shadowWVP = mul(lightProjection, mul(lightView, world));
+    output.shadowMapPos = mul(shadowWVP, float4(input.localPosition, 1.0f));
+
 	return output;
 }

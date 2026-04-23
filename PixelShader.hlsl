@@ -7,6 +7,7 @@ Texture2D AlbedoTexture : register(t0);
 Texture2D NormalMap : register(t1);
 Texture2D RoughnessMap : register(t2);
 Texture2D MetalnessMap : register(t3);
+Texture2D ShadowMap : register(t4);
 
 SamplerState BasicSampler : register(s0);
 
@@ -30,6 +31,9 @@ cbuffer PixelcBuffer : register(b0)
     float3 cameraPosition;
     float timeElapsedMs; //16
     Light lights[5]; //16
+
+    matrix lightView;
+    matrix lightProjection;
 }
 
 
