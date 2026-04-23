@@ -3,14 +3,14 @@
 #include "Light.h"
 #include <array>
 
-struct VertexShaderConstantBuffer
+struct VSConstantBuffer
 {
 	DirectX::XMFLOAT4X4 m_worldMatrix;
 	DirectX::XMFLOAT4X4 m_projectionMatrix;
 	DirectX::XMFLOAT4X4 m_viewMatrix;
 	DirectX::XMFLOAT4X4 m_worldInverseTranspose;
 
-	VertexShaderConstantBuffer();
+	VSConstantBuffer();
 };
 
 struct PSConstantBuffer {
@@ -31,3 +31,13 @@ struct SkyVSConstantBuffer {
 	SkyVSConstantBuffer();
 	SkyVSConstantBuffer(DirectX::XMFLOAT4X4 a_projectionMatrix, DirectX::XMFLOAT4X4 a_viewMatrix);
 };
+
+struct ShadowVSData
+{
+	DirectX::XMFLOAT4X4 m_world;
+	DirectX::XMFLOAT4X4 m_view;
+	DirectX::XMFLOAT4X4 m_proj;
+
+	ShadowVSData();
+};
+

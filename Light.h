@@ -8,13 +8,15 @@
 struct Light
 {
 	int m_Type;
-	DirectX::XMFLOAT3 m_Direction;
+	DirectX::XMFLOAT3 m_Direction; //16
+
 	float m_Range;
-	DirectX::XMFLOAT3 m_Position;
+	DirectX::XMFLOAT3 m_Position; //16
+
 	float m_Intensity;
-	DirectX::XMFLOAT3 m_Color;
+	DirectX::XMFLOAT3 m_Color; //16
+
 	float m_SpotInnerAngle;
 	float m_SpotOuterAngle;
-	DirectX::XMFLOAT2 m_Padding;
 };
 

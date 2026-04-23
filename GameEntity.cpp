@@ -81,6 +81,24 @@ void GameEntity::Draw(
 	m_pMesh->Draw();
 }
 
+void GameEntity::ShadowDraw(
+	DirectX::XMFLOAT4X4 a_lightViewMatrix,
+	DirectX::XMFLOAT4X4 a_lightProjectionMatrix,
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> a_pShadowVertexShader
+	)
+{
+	Graphics::Context->VSSetShader(a_pShadowVertexShader.Get(), 0, 0);
+
+	//shadow vert shader
+	ShadowVSData vsData = {};
+	vsData.m_view = a_lightViewMatrix;
+	vsData.m_proj = a_lightProjectionMatrix;
+	vsData.m_world = m_transform.GetWorldMatrix();
+
+	Graphics::FillAndBindNextConstantBuffer(&vsData, sizeof(vsData), D3D11_VERTEX_SHADER, 0);
+	m_pMesh->Draw();
+}
+
 std::shared_ptr<Material> GameEntity::GetMaterial()
 {
 	return m_pMaterial;

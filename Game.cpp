@@ -10,6 +10,7 @@
 #include <DirectXMath.h>
 #include "WICTextureLoader.h"
 #include "Helper.h"
+#include "Window.h"
 
 //ImGui includes
 #include "ImGui/imgui.h"
@@ -48,19 +49,13 @@ Game::Game()
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
 
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> uvPixelShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> normalsPixelShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> customPixelShader;
+	//shader
+	LoadVertexShader<ShadowVSData>(m_pVSInputLayout, m_pShadowVS, m_pShadowVSConstantBuffer, L"ShadowVertexShader.cso");
+	m_pVSInputLayout.Reset(); //reset input layout to prevent mem leak
 
-	LoadVertexShader(m_pVSInputLayout, vertexShader, m_pVSConstantBuffer, L"VertexShader.cso");
+	LoadVertexShader<VSConstantBuffer>(m_pVSInputLayout, vertexShader, m_pVSConstantBuffer, L"VertexShader.cso");
 	LoadPixelShader<PSConstantBuffer>(
 		PSConstantBuffer(), pixelShader, m_pPSConstantBuffer, L"PixelShader.cso");
-	LoadPixelShader<PSConstantBuffer>(
-		PSConstantBuffer(), uvPixelShader, m_pPSConstantBuffer, L"DebugUVsPS.cso");
-	LoadPixelShader<PSConstantBuffer>(
-		PSConstantBuffer(), normalsPixelShader, m_pPSConstantBuffer, L"DebugNormalsPS.cso");
-	LoadPixelShader<PSConstantBuffer>(
-		PSConstantBuffer(), customPixelShader, m_pPSConstantBuffer, L"CustomPS.cso");
 
 	//Set constant buffers
 	Graphics::Context->VSSetConstantBuffers(0, 1, m_pVSConstantBuffer.GetAddressOf());
@@ -87,41 +82,6 @@ Game::Game()
 		m_pSamplerState		
 	);
 
-
-	std::shared_ptr<Material> uvMaterial = std::make_shared<Material>(
-		DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),
-		vertexShader,
-		uvPixelShader);
-	std::shared_ptr<Material> normalsMaterial = std::make_shared<Material>(
-		DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),
-		vertexShader,
-		normalsPixelShader);
-	std::shared_ptr<Material> customMaterial = std::make_shared<Material>(
-		DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-		vertexShader,
-		customPixelShader);
-
-	m_entitiesList.push_back(GameEntity(m_pCube, uvMaterial));
-	m_entitiesList.push_back(GameEntity(m_pCylinder, uvMaterial));
-	m_entitiesList.push_back(GameEntity(m_pHelix, uvMaterial));
-	m_entitiesList[3].GetTransform().MoveAbsolute(3.0f, 0.0f, 10.0f);
-	m_entitiesList[4].GetTransform().MoveAbsolute(6.0f, 0.0f, 0.0f);
-	m_entitiesList[5].GetTransform().MoveAbsolute(9.0f, 0.0f, -10.0f);
-
-	m_entitiesList.push_back(GameEntity(m_pCube, normalsMaterial));
-	m_entitiesList.push_back(GameEntity(m_pCylinder, normalsMaterial));
-	m_entitiesList.push_back(GameEntity(m_pHelix, normalsMaterial));
-	m_entitiesList[6].GetTransform().MoveAbsolute(-3.0f, 0.0f, 10.0f);
-	m_entitiesList[7].GetTransform().MoveAbsolute(-6.0f, 0.0f, 0.0f);
-	m_entitiesList[8].GetTransform().MoveAbsolute(-12.0f, 0.0f, -10.0f);
-
-	m_entitiesList.push_back(GameEntity(m_pCube, customMaterial));
-	m_entitiesList.push_back(GameEntity(m_pCylinder, customMaterial));
-	m_entitiesList.push_back(GameEntity(m_pHelix, customMaterial));
-	m_entitiesList[9].GetTransform().MoveAbsolute(6.0f, 0.0f, 10.0f);
-	m_entitiesList[10].GetTransform().MoveAbsolute(9.0f, 0.0f, 0.0f);
-	m_entitiesList[11].GetTransform().MoveAbsolute(12.0f, 0.0f, -10.0f);
-
 	//assign lights
 	for (GameEntity& entity : m_entitiesList) {
 		entity.m_PSConstantBuffer.m_lights = m_lights;
@@ -146,7 +106,6 @@ Game::Game()
 	m_number = 1;
 }
 
-
 // --------------------------------------------------------
 // Clean up memory or objects created by this class
 // 
@@ -160,7 +119,6 @@ Game::~Game()
 	ImGui::DestroyContext();
 }
 
-
 // --------------------------------------------------------
 // Loads shaders from compiled shader object (.cso) files
 // and also created the Input Layout that describes our 
@@ -169,6 +127,7 @@ Game::~Game()
 //    be verified against vertex shader byte code
 // - We'll have that byte code already loaded below
 // --------------------------------------------------------
+template <typename VSConstantBufferStruct>
 void Game::LoadVertexShader(
 	Microsoft::WRL::ComPtr<ID3D11InputLayout>& a_pInputLayout,
 	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
@@ -215,10 +174,11 @@ void Game::LoadVertexShader(
 		vertexShaderBlob->GetBufferSize(),		// Size of the shader code that uses this layout
 		a_pInputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
 
+	a_pVertexShaderConstantBuffer.Reset();
 	//Create & bind vertex shader constant buffer
 	D3D11_BUFFER_DESC VS_ConstantBufferDesc = {};
 	VS_ConstantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	VS_ConstantBufferDesc.ByteWidth = (sizeof(VertexShaderConstantBuffer) + 15) / 16 * 16;
+	VS_ConstantBufferDesc.ByteWidth = (sizeof(VSConstantBufferStruct) + 15) / 16 * 16;
 	VS_ConstantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	VS_ConstantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	Graphics::Device->CreateBuffer(&VS_ConstantBufferDesc, 0, a_pVertexShaderConstantBuffer.GetAddressOf());
@@ -259,6 +219,7 @@ void Game::CreateGeometry()
 	m_pCube = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/cube.obj").c_str());
 	m_pCylinder = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/cylinder.obj").c_str());
 	m_pHelix = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/helix.obj").c_str());
+	m_pPlane = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/plane.obj").c_str());
 }
 
 void Game::CreateEntities(
@@ -365,22 +326,25 @@ void Game::CreateEntities(
 	m_entitiesList.push_back(GameEntity(m_pCube, red));
 	m_entitiesList.push_back(GameEntity(m_pCylinder, white));
 	m_entitiesList.push_back(GameEntity(m_pHelix, green));
+	m_entitiesList.push_back(GameEntity(m_pPlane, white));
 
 	m_entitiesList[0].GetTransform().MoveAbsolute(0.0f, 0.0f, 10.0f);
-	m_entitiesList[1].GetTransform().MoveAbsolute(3.0f, 0.0f, 0.0f);
-	m_entitiesList[2].GetTransform().MoveAbsolute(6.0f, 0.0f, -10.0f);
+	m_entitiesList[1].GetTransform().MoveAbsolute(3.0f, 0.0f, 10.0f);
+	m_entitiesList[2].GetTransform().MoveAbsolute(6.0f, 0.0f, 10.0f);
+	m_entitiesList[3].GetTransform().MoveAbsolute(6.0f, -5.0f, 15.0f);
 }
 
 void Game::CreateLights()
 {
 	//directional
 	m_lights[0].m_Type = LIGHT_TYPE_DIRECTIONAL;
-	m_lights[0].m_Direction = DirectX::XMFLOAT3{-1.0f, 0.0f, 0.0f};
+	m_lights[0].m_Direction = DirectX::XMFLOAT3{0.24f, -0.14f, 0.95f};
+	m_lights[0].m_Position = DirectX::XMFLOAT3{5.0f, 0.0f, 0.0f};
 	m_lights[0].m_Color = DirectX::XMFLOAT3{1.0f, 1.0f, 1.0f};
 	m_lights[0].m_Intensity = 1.0f;
 
 	m_lights[1].m_Type = LIGHT_TYPE_POINT;
-	m_lights[1].m_Position = DirectX::XMFLOAT3{0.0f, 0.0f, 0.0f};
+	m_lights[1].m_Position = DirectX::XMFLOAT3{0.0f, 0.0f, 7.0f};
 	m_lights[1].m_Color = DirectX::XMFLOAT3{1.0f, 1.0f, 1.0f};
 	m_lights[1].m_Intensity = 1.0f;
 	m_lights[1].m_Range = 10.0f;
@@ -398,11 +362,71 @@ void Game::CreateLights()
 	m_lights[4].m_Type = LIGHT_TYPE_SPOT;
 	m_lights[4].m_Direction = DirectX::XMFLOAT3{0.0f, 0.0f, 1.0f};
 	m_lights[4].m_Color = DirectX::XMFLOAT3{1.0f, 1.0f, 1.0f};
-	m_lights[4].m_Position = DirectX::XMFLOAT3{4.0f, 0.0f, -2.0f};
+	m_lights[4].m_Position = DirectX::XMFLOAT3{4.0f, 0.0f, 15.0f};
 	m_lights[4].m_SpotOuterAngle = 80 * 3.14f / 180;
 	m_lights[4].m_SpotInnerAngle = 60 * 3.14f / 180;
 	m_lights[4].m_Intensity = 1.0f;
 	m_lights[4].m_Range = 100.0f;
+
+
+	// Create the actual texture that will be the shadow map
+	//shadows
+	D3D11_TEXTURE2D_DESC shadowDesc = {};
+	shadowDesc.Width = m_shadowMapResolution; // Ideally a power of 2 (like 1024)
+	shadowDesc.Height = m_shadowMapResolution; // Ideally a power of 2 (like 1024)
+	shadowDesc.ArraySize = 1;
+	shadowDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	shadowDesc.CPUAccessFlags = 0;
+	shadowDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	shadowDesc.MipLevels = 1;
+	shadowDesc.MiscFlags = 0;
+	shadowDesc.SampleDesc.Count = 1;
+	shadowDesc.SampleDesc.Quality = 0;
+	shadowDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> shadowTexture;
+	Graphics::Device->CreateTexture2D(&shadowDesc, 0, shadowTexture.GetAddressOf());
+
+	//dsv
+	D3D11_DEPTH_STENCIL_VIEW_DESC shadowDSDesc = {};
+	shadowDSDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	shadowDSDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	shadowDSDesc.Texture2D.MipSlice = 0;
+	Graphics::Device->CreateDepthStencilView(
+		shadowTexture.Get(),
+		&shadowDSDesc,
+		m_pShadowDSV.GetAddressOf());
+
+
+	//srv
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	Graphics::Device->CreateShaderResourceView(
+		shadowTexture.Get(),
+		&srvDesc,
+		m_pShadowSRV.GetAddressOf());
+
+	//shadow rasterizer
+	D3D11_RASTERIZER_DESC shadowRasterizerDesc = {};
+	shadowRasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	shadowRasterizerDesc.CullMode = D3D11_CULL_BACK;
+	shadowRasterizerDesc.DepthClipEnable = false; // Keep out-of-frustum objects!
+	shadowRasterizerDesc.DepthBias = 1000; // Min. precision units, not world units!
+	shadowRasterizerDesc.SlopeScaledDepthBias = 1.0f; // Bias more based on slope
+	Graphics::Device->CreateRasterizerState(&shadowRasterizerDesc, &m_pShadowRasterizer);
+
+	//proj / view matrices
+	m_lightViewMatrix = Helper::UpdateLightViewMatrix(m_lights[0].m_Direction, m_lightViewMatrix);
+	DirectX::XMMATRIX lightProjectionMatrixVector = DirectX::XMMatrixOrthographicLH(
+		static_cast<float>(m_lightProjectionSize),
+		static_cast<float>(m_lightProjectionSize),
+		1.0f,
+		100.f
+	);
+	DirectX::XMStoreFloat4x4(&m_lightProjectionMatrix, lightProjectionMatrixVector);
 }
 
 
@@ -434,6 +458,10 @@ void Game::Update(float deltaTime, float totalTime)
 
 	for (GameEntity& ent : m_entitiesList) {
 		ent.m_lifetimeMs += deltaTime;
+	}
+
+	for (int i = 0; i < 3; i++) {
+		m_entitiesList[i].GetTransform().Rotate(0.0f, 2.0f * deltaTime, 0.0f);
 	}
 	//for (GameEntity& object : m_entitiesList) {
 	//	object.GetTransform().MoveAbsolute(sin(totalTime * 2) * deltaTime, sin(totalTime * 2) * deltaTime, 0.0f);
@@ -581,11 +609,13 @@ void Game::BuildUI() {
 	};
 
 
+	ImGui::Image(m_pShadowSRV.Get(), ImVec2(512, 512));
 	if (ImGui::TreeNode("Lights")) {
-		for (Light& light : m_lights) {
-			ImGui::PushID(&light);
+		for (int i = 0; i < m_lights.size(); i++) {
+			Light& currentLight = m_lights[i];
+			ImGui::PushID(i);
 			const char* lightType;
-			switch (light.m_Type) {
+			switch (currentLight.m_Type) {
 			case 0:
 				lightType = "Directional";
 				break;
@@ -601,24 +631,28 @@ void Game::BuildUI() {
 			}
 
 			if (ImGui::TreeNode("", "%s Light", lightType)) {
-				if (ImGui::DragFloat3("Position", &light.m_Position.x, 0.1f, 0.0f, 10.0f))
+				if (ImGui::DragFloat3("Position", &currentLight.m_Position.x, 0.1f, 0.0f, 10.0f))
 				{
-					UpdateLights();
+					UpdateEntityLights();
 				}
-				if (ImGui::DragFloat3("Direction", &light.m_Direction.x, 0.1f, -10.0f, 10.0f)) {
+				if (ImGui::DragFloat3("Direction", &currentLight.m_Direction.x, 0.1f, -10.0f, 10.0f)) {
 					//normalize direction
-					DirectX::XMVECTOR normalized = DirectX::XMLoadFloat3(&light.m_Direction);
+					DirectX::XMVECTOR normalized = DirectX::XMLoadFloat3(&currentLight.m_Direction);
 					normalized = DirectX::XMVector3Normalize(normalized);
-					DirectX::XMStoreFloat3(&light.m_Direction, normalized);
-					UpdateLights();
+					DirectX::XMStoreFloat3(&currentLight.m_Direction, normalized);
+					if (i == 0) {
+						m_lightViewMatrix = Helper::UpdateLightViewMatrix(currentLight.m_Direction, m_lightViewMatrix);
+					}
+					//update view matrix
+					UpdateEntityLights();
 				}
-				if (ImGui::DragFloat3("Color", &light.m_Color.x, 0.1f, 0.0f, 1.0f))
+				if (ImGui::DragFloat3("Color", &currentLight.m_Color.x, 0.1f, 0.0f, 1.0f))
 				{
-					UpdateLights();
+					UpdateEntityLights();
 				}
-				if (ImGui::DragFloat("Intensity", &light.m_Intensity, 0.1f, 0.0f, 10.0f))
+				if (ImGui::DragFloat("Intensity", &currentLight.m_Intensity, 0.1f, 0.0f, 10.0f))
 				{
-					UpdateLights();
+					UpdateEntityLights();
 				}
 				ImGui::TreePop();
 			}
@@ -666,6 +700,35 @@ void Game::Draw(float deltaTime, float totalTime)
 		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	m_color);
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
+	{
+		//shadow
+		Graphics::Context->ClearDepthStencilView(m_pShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+		ID3D11RenderTargetView* nullRTV{ };
+		Graphics::Context->OMSetRenderTargets(1, &nullRTV, m_pShadowDSV.Get());
+		Graphics::Context->PSSetShader(0, 0, 0);
+
+		D3D11_VIEWPORT viewport = {};
+		viewport.Width = static_cast<float>(m_shadowMapResolution);
+		viewport.Height = static_cast<float>(m_shadowMapResolution);
+		viewport.MaxDepth = 1.0f;
+		Graphics::Context->RSSetViewports(1, &viewport);
+
+
+		//draw shadowmap
+		for (GameEntity& entity : m_entitiesList)
+		{
+			entity.ShadowDraw(m_lightViewMatrix, m_lightProjectionMatrix, m_pShadowVS);
+		}
+
+		//reset
+		viewport.Width = static_cast<float>(Window::Width());
+		viewport.Height = static_cast<float>(Window::Height());
+
+		Graphics::Context->RSSetViewports(1, &viewport);
+
+		Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), Graphics::DepthBufferDSV.Get());
+	}
+
 
 	// DRAW geometry
 	// - These steps are generally repeated for EACH object you draw
@@ -722,7 +785,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 }
 
-void Game::UpdateLights() {
+void Game::UpdateEntityLights() {
 	for (GameEntity& entity : m_entitiesList) {
 		entity.m_PSConstantBuffer.m_lights = m_lights;
 	}

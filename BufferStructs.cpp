@@ -1,6 +1,6 @@
 #include "BufferStructs.h"
 
-VertexShaderConstantBuffer::VertexShaderConstantBuffer()
+VSConstantBuffer::VSConstantBuffer()
 {
 	//Identity transform matrix
 	DirectX::XMStoreFloat4x4(&m_worldMatrix, DirectX::XMMatrixIdentity());
@@ -32,4 +32,8 @@ SkyVSConstantBuffer::SkyVSConstantBuffer(DirectX::XMFLOAT4X4 a_projectionMatrix,
 {
 	m_projectionMatrix = a_projectionMatrix;
 	m_viewMatrix = a_viewMatrix;
+}
+
+ShadowVSData::ShadowVSData()
+{
 }

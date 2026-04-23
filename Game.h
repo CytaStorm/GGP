@@ -32,6 +32,7 @@ public:
 
 
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
+	template<typename VSConstantBufferStruct>
 	static void LoadVertexShader(
 		Microsoft::WRL::ComPtr<ID3D11InputLayout>& a_pInputLayout,
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
@@ -81,10 +82,14 @@ private:
 	//Light
 	std::array<Light, 5> m_lights;
 
+	//shadow
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_pShadowVS;
+
 	//Meshes
 	std::shared_ptr<Mesh> m_pCube;
 	std::shared_ptr<Mesh> m_pCylinder;
 	std::shared_ptr<Mesh> m_pHelix;
+	std::shared_ptr<Mesh> m_pPlane;
 
 	//GameEntities
 	std::vector<GameEntity> m_entitiesList;
@@ -94,6 +99,7 @@ private:
 
 	//Constant buffer for vertex shader
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVSConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pShadowVSConstantBuffer; //shadow
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pPSConstantBuffer;
 
 	//Cameras
@@ -101,8 +107,23 @@ private:
 	std::shared_ptr<Camera> m_pActiveCamera;
 
 	//Updates lights in entity buffers
-	void UpdateLights();
+	void UpdateEntityLights();
 
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pSamplerState;
 	Sky m_sky;
+
+	//shadow
+	unsigned int m_shadowMapResolution = 1024;
+	unsigned int m_lightProjectionSize = 15;
+
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_pShadowDSV;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pShadowSRV;
+
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pShadowRasterizer;
+
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pShadowSampler;
+
+	DirectX::XMFLOAT4X4 m_lightViewMatrix;
+	DirectX::XMFLOAT4X4 m_lightProjectionMatrix;
 };

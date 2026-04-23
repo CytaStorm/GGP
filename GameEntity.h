@@ -14,7 +14,7 @@ private:
 	std::shared_ptr<Material> m_pMaterial;
 
 public:
-	VertexShaderConstantBuffer m_VSConstantBuffer = VertexShaderConstantBuffer();
+	VSConstantBuffer m_VSConstantBuffer = VSConstantBuffer();
 	PSConstantBuffer m_PSConstantBuffer = PSConstantBuffer();
 
 	GameEntity(std::shared_ptr<Mesh> a_pMesh, std::shared_ptr<Material> a_pMaterial);
@@ -27,6 +27,8 @@ public:
 		Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer,
 		Microsoft::WRL::ComPtr<ID3D11Buffer> a_PSConstantBuffer,
 		std::shared_ptr<Camera> a_camera);
+
+	void ShadowDraw(DirectX::XMFLOAT4X4 a_lightViewMatrix, DirectX::XMFLOAT4X4 a_lightProjectionMatrix, Microsoft::WRL::ComPtr<ID3D11VertexShader> a_pShadowVertexShader);
 
 	std::shared_ptr<Material> GetMaterial();
 	void SetMaterial(std::shared_ptr<Material> a_pMaterial);

@@ -20,7 +20,6 @@ struct Light
     float3 color;
     float spotInnerAngle;
     float spotOuterAngle;
-    float2 padding;
 };
 
 cbuffer PixelcBuffer : register(b0)
