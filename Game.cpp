@@ -415,11 +415,21 @@ void Game::CreateLights()
 	shadowRasterizerDesc.CullMode = D3D11_CULL_BACK;
 	shadowRasterizerDesc.DepthClipEnable = false; // Keep out-of-frustum objects!
 	shadowRasterizerDesc.DepthBias = 1000; // Min. precision units, not world units!
-	shadowRasterizerDesc.SlopeScaledDepthBias = 1.0f; // Bias more based on slope
+	shadowRasterizerDesc.SlopeScaledDepthBias = 1.0f;;
 	Graphics::Device->CreateRasterizerState(&shadowRasterizerDesc, &m_pShadowRasterizer);
 
+	//shadow sampler
+	D3D11_SAMPLER_DESC shadowSampDesc = {};
+	shadowSampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+	shadowSampDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+	shadowSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+	shadowSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+	shadowSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+	shadowSampDesc.BorderColor[0] = 1.0f; // Only need the first component
+	Graphics::Device->CreateSamplerState(&shadowSampDesc, &m_pShadowSampler);
+
 	//proj / view matrices
-	m_lightViewMatrix = Helper::UpdateLightViewMatrix(m_lights[0].m_Direction, m_lightViewMatrix);
+	m_lightViewMatrix = Helper::CalculateNewLightViewMatrix(m_lights[0].m_Direction, m_lightViewMatrix);
 	DirectX::XMMATRIX lightProjectionMatrixVector = DirectX::XMMatrixOrthographicLH(
 		static_cast<float>(m_lightProjectionSize),
 		static_cast<float>(m_lightProjectionSize),
@@ -641,7 +651,7 @@ void Game::BuildUI() {
 					normalized = DirectX::XMVector3Normalize(normalized);
 					DirectX::XMStoreFloat3(&currentLight.m_Direction, normalized);
 					if (i == 0) {
-						m_lightViewMatrix = Helper::UpdateLightViewMatrix(currentLight.m_Direction, m_lightViewMatrix);
+						m_lightViewMatrix = Helper::CalculateNewLightViewMatrix(currentLight.m_Direction, m_lightViewMatrix);
 					}
 					//update view matrix
 					UpdateEntityLights();
@@ -713,20 +723,27 @@ void Game::Draw(float deltaTime, float totalTime)
 		viewport.MaxDepth = 1.0f;
 		Graphics::Context->RSSetViewports(1, &viewport);
 
+		Graphics::Context->RSSetState(m_pShadowRasterizer.Get());
+		
 
 		//draw shadowmap
 		for (GameEntity& entity : m_entitiesList)
 		{
+			//entity.GetMaterial()->AddSampler(1, m_pShadowSampler);
 			entity.ShadowDraw(m_lightViewMatrix, m_lightProjectionMatrix, m_pShadowVS);
 		}
 
 		//reset
+		Graphics::Context->RSSetState(0);
 		viewport.Width = static_cast<float>(Window::Width());
 		viewport.Height = static_cast<float>(Window::Height());
 
 		Graphics::Context->RSSetViewports(1, &viewport);
 
-		Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), Graphics::DepthBufferDSV.Get());
+		Graphics::Context->OMSetRenderTargets(
+			1, 
+			Graphics::BackBufferRTV.GetAddressOf(),
+			Graphics::DepthBufferDSV.Get());
 	}
 
 
@@ -757,9 +774,19 @@ void Game::Draw(float deltaTime, float totalTime)
 	//}
 
 	{
+		//set samplers etc
+
 		for (GameEntity& entity : m_entitiesList) {
+			//Graphics::Context->PSSetShaderResources(4, 1, &m_pShadowSRV);
+			//Graphics::Context->PSSetSamplers(1, 1, &m_pShadowSampler);
+			entity.GetMaterial()->AddTextureSRV(4, m_pShadowSRV);
+			entity.GetMaterial()->AddSampler(1, m_pShadowSampler);
 			entity.GetMaterial()->BindTexturesAndSamplers();
-			entity.Draw(m_pVSConstantBuffer, m_pPSConstantBuffer, m_pActiveCamera);
+			entity.Draw(m_pVSConstantBuffer,
+				m_pPSConstantBuffer, 
+				m_pActiveCamera, 
+				m_lightViewMatrix, 
+				m_lightProjectionMatrix);
 		}
 		m_sky.Draw(m_pActiveCamera);
 	}
@@ -781,6 +808,10 @@ void Game::Draw(float deltaTime, float totalTime)
 			1,
 			Graphics::BackBufferRTV.GetAddressOf(),
 			Graphics::DepthBufferDSV.Get());
+
+		
+		ID3D11ShaderResourceView* nullSRVs[128] = {};
+		Graphics::Context->PSSetShaderResources(0, 128, nullSRVs);
 	}
 
 }

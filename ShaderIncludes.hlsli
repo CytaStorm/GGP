@@ -37,7 +37,7 @@ struct VertexToPixel
     float3 normal			: NORMAL;
     float3 worldPosition	: POSITION;
     float3 tangent			: TANGENT;
-    matrix shadowMapPos		: SHADOW_POSITION;
+    float4 shadowMapPos		: SHADOW_POSITION;
 };
 
 struct VertexToPixel_Sky

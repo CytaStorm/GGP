@@ -10,168 +10,170 @@ Texture2D MetalnessMap : register(t3);
 Texture2D ShadowMap : register(t4);
 
 SamplerState BasicSampler : register(s0);
+SamplerComparisonState ShadowSampler : register(s1);
 
 struct Light
 {
-    int type;
-    float3 direction;
-    float range;
-    float3 position;
-    float intensity;
-    float3 color;
-    float spotInnerAngle;
-    float spotOuterAngle;
+	int type;
+	float3 direction; //16
+	float range;
+	float3 position; //16
+	float intensity;
+	float3 color; //16
+	float spotInnerAngle;
+	float spotOuterAngle; //8
 };
 
 cbuffer PixelcBuffer : register(b0)
 {
-    float4 colorTint; //16
-    float2 scale;
-    float2 offset; // 16
-    float3 cameraPosition;
-    float timeElapsedMs; //16
-    Light lights[5]; //16
+	float4 colorTint; //16
+	float2 scale;
+	float2 offset; // 16
+	float3 cameraPosition;
+	float timeElapsedMs; //16
 
-    matrix lightView;
-    matrix lightProjection;
+	matrix lightView;
+	matrix lightProjection;
+
+	Light lights[5]; //8
 }
 
 
 float3 Attenuate(Light light, float3 worldPos)
 {
-    float dist = distance(light.position, worldPos);
-    float att = saturate(1.0f - (dist * dist / (light.range * light.range)));
-    return att * att;
+	float dist = distance(light.position, worldPos);
+	float att = saturate(1.0f - (dist * dist / (light.range * light.range)));
+	return att * att;
 }
 
 float D_GGX(float3 normal, float3 halfAngle, float roughness)
 {
-    float MIN_ROUGHNESS = 0.0000001;
-    float NdotH = saturate(dot(normal, halfAngle));
-    float NdotH2 = NdotH * NdotH;
-    float a = roughness * roughness;
-    float a2 = max(a * a, MIN_ROUGHNESS);
-    
-    float denomToSquare = NdotH2 * (a2 - 1) + 1;
+	float MIN_ROUGHNESS = 0.0000001;
+	float NdotH = saturate(dot(normal, halfAngle));
+	float NdotH2 = NdotH * NdotH;
+	float a = roughness * roughness;
+	float a2 = max(a * a, MIN_ROUGHNESS);
+	
+	float denomToSquare = NdotH2 * (a2 - 1) + 1;
 
-    return a2 / (3.14 * denomToSquare * denomToSquare);
+	return a2 / (3.14 * denomToSquare * denomToSquare);
 }
 
 float G_SchlickGGX(float3 normal, float3 view, float roughness)
 {
-    float k = pow(roughness + 1, 2) / 8.0f;
-    float NdotV = saturate(dot(normal, view));
+	float k = pow(roughness + 1, 2) / 8.0f;
+	float NdotV = saturate(dot(normal, view));
 
-    return 1 / (NdotV * (1 - k) + k);
+	return 1 / (NdotV * (1 - k) + k);
 
 }
 
 float3 F_Schlick(float3 view, float3 halfAngle, float3 specularColor)
 {
-    float VdotH = saturate(dot(view, halfAngle));
+	float VdotH = saturate(dot(view, halfAngle));
 
-    return specularColor + (1 - specularColor) * pow(1 - VdotH, 5);
+	return specularColor + (1 - specularColor) * pow(1 - VdotH, 5);
 }
 
 float3 DiffuseEnergyConserve(float3 diffuse, float3 fresnel, float metalness)
 { 
-    return diffuse * (1 - fresnel) * (1 - metalness);
+	return diffuse * (1 - fresnel) * (1 - metalness);
 }
 
 float3 MicrofacetBRDF(float3 n, float3 l, float3 v, float roughness, float3 f0)
 {
-    float3 halfAngle = normalize(n + l);
-    float D = D_GGX(n, halfAngle, roughness);
-    float G = G_SchlickGGX(n, v, roughness);
-    float3 F = F_Schlick(v, halfAngle, f0);
+	float3 halfAngle = normalize(n + l);
+	float D = D_GGX(n, halfAngle, roughness);
+    float G = G_SchlickGGX(n, v, roughness) * G_SchlickGGX(n, l, roughness);
+	float3 F = F_Schlick(v, halfAngle, f0);
 
-    float3 specularResult = (D * F * G) / 4;
-    return specularResult * saturate(dot(n, 1));
+	float3 specularResult = (D * F * G) / 4;
+	return specularResult * saturate(dot(n, l));
 }
 
 float3 CalculatePhong(VertexToPixel input, Light light, float3 albedoColor)
 {
  float3 refl = reflect(-light.direction, input.normal);
 
-    float RdotV = saturate(dot(refl, normalize(input.worldPosition - cameraPosition)));
-    return pow(RdotV, 256) *
-       light.color *
-       light.intensity *
-       albedoColor.xyz;
+	float RdotV = saturate(dot(refl, normalize(input.worldPosition - cameraPosition)));
+	return pow(RdotV, 256) *
+	   light.color *
+	   light.intensity *
+	   albedoColor.xyz;
 }
 
 float3 PointLight(VertexToPixel input, Light light, float3 albedoColor, float roughness, float3 specularColor, float metalness)
 {
-    //diffuse
-    //float3 directionToLight = -lights[lightIndex].direction;
-    float3 directionToLight = light.position - input.worldPosition;
-    float3 diffuseTerm = saturate(dot(input.normal, directionToLight)) * 
-        light.color * 
-        light.intensity * 
-        albedoColor;  
+	//diffuse
+	//float3 directionToLight = -lights[lightIndex].direction;
+	float3 directionToLight = light.position - input.worldPosition;
+	float3 diffuseTerm = saturate(dot(input.normal, directionToLight)) * 
+		light.color * 
+		light.intensity * 
+		albedoColor;  
 
-    //specularlity
-    float3 directionToCamera = cameraPosition - input.worldPosition;
-    float3 specularTerm = MicrofacetBRDF(
-        input.normal, directionToLight, directionToCamera, roughness, specularColor);
+	//specularlity
+	float3 directionToCamera = cameraPosition - input.worldPosition;
+	float3 specularTerm = MicrofacetBRDF(
+		input.normal, normalize(directionToLight), directionToCamera, roughness, specularColor);
 
-    float3 fresnel = F_Schlick(input.normal, input.normal + directionToLight, specularColor);
-    float3 balancedDiff = DiffuseEnergyConserve(diffuseTerm, fresnel, metalness);
+	float3 fresnel = F_Schlick(input.normal, input.normal + directionToLight, specularColor);
+	float3 balancedDiff = DiffuseEnergyConserve(diffuseTerm, fresnel, metalness);
 
-    float3 total = (balancedDiff * diffuseTerm + specularTerm) * light.intensity * light.color;
+	float3 total = (balancedDiff * diffuseTerm + specularTerm) * light.intensity * light.color;
 
-    return total * Attenuate(light, input.worldPosition);
+	return total * Attenuate(light, input.worldPosition);
 }
 
 float3 DirectionalLight(VertexToPixel input, Light light, float3 albedoColor, float roughness, float3 specularColor, float metalness)
 {
-    //diffuse
-    float3 directionToLight = -light.direction;
-    float3 diffuseTerm = saturate(dot(input.normal, directionToLight)) * 
-        light.color * 
-        light.intensity * 
-        albedoColor;  
+	//diffuse
+	float3 directionToLight = -light.direction;
+	float3 diffuseTerm = saturate(dot(input.normal, directionToLight)) * 
+		light.color * 
+		light.intensity * 
+		albedoColor;  
 
-    //specularity
-    float3 directionToCamera = cameraPosition - input.worldPosition;
-    float3 specularTerm = MicrofacetBRDF(
-        input.normal, directionToLight, directionToCamera, roughness, specularColor);
+	//specularity
+	float3 directionToCamera = cameraPosition - input.worldPosition;
+	float3 specularTerm = MicrofacetBRDF(
+		input.normal, directionToLight, directionToCamera, roughness, specularColor);
 
-    float3 fresnel = F_Schlick(input.normal, input.normal + directionToLight, specularColor);
-    float3 balancedDiff = DiffuseEnergyConserve(diffuseTerm, fresnel, metalness);
+	float3 fresnel = F_Schlick(input.normal, input.normal + directionToLight, specularColor);
+	float3 balancedDiff = DiffuseEnergyConserve(diffuseTerm, fresnel, metalness);
 
-    float3 total = (balancedDiff * diffuseTerm + specularTerm) * light.intensity * light.color;
+	float3 total = (balancedDiff * diffuseTerm + specularTerm) * light.intensity * light.color;
 
-    return total;
+	return total;
 }
 
 float3 SpotLight(VertexToPixel input, Light light, float3 albedoColor, float roughness, float3 specularColor, float metalness)
 {
-    float3 lightToPixel = light.position - input.worldPosition;
-    float pixelAngle = saturate(dot(lightToPixel, light.direction));
+	float3 lightToPixel = light.position - input.worldPosition;
+	float pixelAngle = saturate(dot(lightToPixel, light.direction));
 
-    float cosOuter = cos(light.spotOuterAngle);
-    float cosInner = cos(light.spotInnerAngle);
-    float fallOffRange = cosOuter - cosInner;
+	float cosOuter = cos(light.spotOuterAngle);
+	float cosInner = cos(light.spotInnerAngle);
+	float fallOffRange = cosOuter - cosInner;
 
-    float spotTerm = saturate((cosOuter - pixelAngle) / fallOffRange);
+	float spotTerm = saturate((cosOuter - pixelAngle) / fallOffRange);
 
-    return PointLight(input, light, albedoColor, roughness, specularColor, metalness) * spotTerm;
+	return PointLight(input, light, albedoColor, roughness, specularColor, metalness) * spotTerm;
 }
 
 float3 CalculateNormals(VertexToPixel input)
 {
-    //corrected normal
-    float4 normalFromTexture = NormalMap.Sample(BasicSampler, input.uv);
-    float3 unpackedNormal = normalize(normalFromTexture * 2.0f - 1.0f).xyz;
+	//corrected normal
+	float4 normalFromTexture = NormalMap.Sample(BasicSampler, input.uv);
+	float3 unpackedNormal = normalize(normalFromTexture * 2.0f - 1.0f).xyz;
 
-    float3 N = normalize(input.normal);
-    float3 T = normalize(input.tangent - N * dot(input.tangent, N));
-    float3 B = cross(T, N);
+	float3 N = normalize(input.normal);
+	float3 T = normalize(input.tangent - N * dot(input.tangent, N));
+	float3 B = cross(T, N);
 
-    float3x3 TBN = float3x3(T, B, N);
-    
-    return mul(unpackedNormal, TBN);
+	float3x3 TBN = float3x3(T, B, N);
+	
+    return normalize(mul(unpackedNormal, TBN));
 }
 // --------------------------------------------------------
 // The entry point (main method) for our pixel shader
@@ -184,40 +186,62 @@ float3 CalculateNormals(VertexToPixel input)
 // --------------------------------------------------------
 float4 main(VertexToPixel input) : SV_TARGET
 {
-    float4 albedoColor =
-        pow(AlbedoTexture.Sample(BasicSampler, input.uv), 2.2) *
-        colorTint; //* MaskTexture.Sample(BasicSampler, input.uv);
+	//shadow
+	input.shadowMapPos /= input.shadowMapPos.w;
 
-    //float roughness = RoughnessMap.Sample(BasicSampler, input.uv).r;
-    //float metallic = MetalnessMap.Sample(BasicSampler, input.uv).r;
-    float roughness = 0.5;
-    float metallic = 0;
-    float3 specularColor = lerp(0.04f, albedoColor.rgb, metallic);
+	float2 shadowUV = input.shadowMapPos.xy * 0.5f + 0.5f;
+
+	shadowUV.y = 1 - shadowUV.y;
+	
+	float distToLight = input.shadowMapPos.z;
+
+    //float distShadowMap = ShadowMap.Sample(BasicSampler, shadowUV).r;
+	// For testing, just return black where there are shadows.
+
+    //if (distShadowMap < distToLight)
+    //{
+    //    return float4(0, 0, 0, 1);
+    //}
+	float shadowAmount = ShadowMap.SampleCmpLevelZero(ShadowSampler, shadowUV, distToLight).r;
+    return shadowAmount;
+	   
+	float4 albedoColor =
+		pow(AlbedoTexture.Sample(BasicSampler, input.uv), 2.2) *
+		colorTint; //* MaskTexture.Sample(BasicSampler, input.uv);
+
+	float roughness = RoughnessMap.Sample(BasicSampler, input.uv).r;
+	float metallic = MetalnessMap.Sample(BasicSampler, input.uv).r;
+	float3 specularColor = lerp(0.04f, albedoColor.rgb, metallic);
 
 
-    input.uv = input.uv * scale + offset;
-    //masking
+	input.uv = input.uv * scale + offset;
+	//masking
 
-    //normals
-    input.normal = CalculateNormals(input);
-    float3 finalColor;
+	//normals
+	input.normal = CalculateNormals(input);
+	float3 finalColor;
 
-    for (int i = 0; i < 5; i++)
-    {
-        switch (lights[i].type)
-        {
-            case LIGHT_TYPE_DIRECTIONAL:
-                finalColor += DirectionalLight(input, lights[i], albedoColor.xyz, roughness, specularColor, metallic);
-                break;
-            case LIGHT_TYPE_POINT:
-                finalColor += PointLight(input, lights[i], albedoColor.xyz, roughness, specularColor, metallic);
-                break;
-            case LIGHT_TYPE_SPOT:
-                finalColor += SpotLight(input, lights[i], albedoColor.xyz, roughness, specularColor, metallic);
-                break;
-        }
-    }
-
-    return pow(float4(finalColor, 1), (1.0 / 2.2));
-
+	for (int i = 0; i < 5; i++)
+	{
+		switch (lights[i].type)
+		{
+			case LIGHT_TYPE_DIRECTIONAL:
+				float3 lightResult = DirectionalLight(input, lights[i], albedoColor.xyz, roughness, specularColor, metallic);
+				//finalColor += DirectionalLight(input, lights[i], albedoColor.xyz, roughness, specularColor, metallic);
+				if (i == 0)
+				{
+				    lightResult *= shadowAmount;
+				}
+				//Add this light's result to the total light for this pixel
+				finalColor += lightResult;
+				break;
+			case LIGHT_TYPE_POINT:
+				finalColor += PointLight(input, lights[i], albedoColor.xyz, roughness, specularColor, metallic);
+				break;
+			case LIGHT_TYPE_SPOT:
+				finalColor += SpotLight(input, lights[i], albedoColor.xyz, roughness, specularColor, metallic);
+				break;
+			}
+		}
+	return pow(float4(finalColor, 1), (1.0 / 2.2));
 }

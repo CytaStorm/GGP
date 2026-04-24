@@ -9,7 +9,8 @@ struct VSConstantBuffer
 	DirectX::XMFLOAT4X4 m_projectionMatrix;
 	DirectX::XMFLOAT4X4 m_viewMatrix;
 	DirectX::XMFLOAT4X4 m_worldInverseTranspose;
-
+	DirectX::XMFLOAT4X4 m_lightViewMatrix;
+	DirectX::XMFLOAT4X4 m_lightProjectionMatrix;
 	VSConstantBuffer();
 };
 
@@ -17,8 +18,13 @@ struct PSConstantBuffer {
 	DirectX::XMFLOAT4 m_colorTint; // 16
 	DirectX::XMFLOAT2 m_scale;
 	DirectX::XMFLOAT2 m_offset; // 16
+
 	DirectX::XMFLOAT3 m_cameraPosition;
 	float m_timeElapsedMs; // 16
+
+	DirectX::XMFLOAT4X4 m_lightViewMatrix;
+	DirectX::XMFLOAT4X4 m_lightProjectionMatrix;
+
 	std::array<Light, 5> m_lights;
 
 	PSConstantBuffer();

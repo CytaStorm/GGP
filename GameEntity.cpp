@@ -32,7 +32,9 @@ Transform& GameEntity::GetTransform()
 void GameEntity::Draw(
 	Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer,
 	Microsoft::WRL::ComPtr<ID3D11Buffer> a_PSConstantBuffer,
-	std::shared_ptr<Camera> a_camera)
+	std::shared_ptr<Camera> a_camera,
+	DirectX::XMFLOAT4X4 a_lightViewMatrix,
+	DirectX::XMFLOAT4X4 a_lightProjectionMatrix)
 {
 
 	Graphics::Context->VSSetShader(m_pMaterial->GetVertexShader().Get(), 0, 0);
@@ -47,12 +49,19 @@ void GameEntity::Draw(
 	m_VSConstantBuffer.m_viewMatrix = a_camera->GetViewMatrix();
 	m_VSConstantBuffer.m_worldInverseTranspose = m_transform.GetWorldInverseTransposeMatrix();
 
+	m_VSConstantBuffer.m_lightProjectionMatrix = a_lightProjectionMatrix;
+	m_VSConstantBuffer.m_lightViewMatrix = a_lightViewMatrix;
+
+
 	//pixel shader buffer
 	m_PSConstantBuffer.m_colorTint = m_pMaterial->GetColorTint();
 	m_PSConstantBuffer.m_timeElapsedMs = m_lifetimeMs;
 	m_PSConstantBuffer.m_scale = m_pMaterial->GetUVscale();
 	m_PSConstantBuffer.m_offset = m_pMaterial->GetUVoffset();
 	m_PSConstantBuffer.m_cameraPosition = a_camera->GetTransform().GetPosition();
+
+	m_PSConstantBuffer.m_lightProjectionMatrix = a_lightProjectionMatrix;
+	m_PSConstantBuffer.m_lightViewMatrix = a_lightViewMatrix;
 
 	//memcpy shader
 	//vertex shader buffer
@@ -95,7 +104,7 @@ void GameEntity::ShadowDraw(
 	vsData.m_proj = a_lightProjectionMatrix;
 	vsData.m_world = m_transform.GetWorldMatrix();
 
-	Graphics::FillAndBindNextConstantBuffer(&vsData, sizeof(vsData), D3D11_VERTEX_SHADER, 0);
+	Graphics::FillAndBindNextConstantBuffer(&vsData, sizeof(ShadowVSData), D3D11_VERTEX_SHADER, 0);
 	m_pMesh->Draw();
 }
 

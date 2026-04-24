@@ -16,7 +16,7 @@ Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> Helper::LoadTexture(const wchar
 	return newSRV;
 }
 
-DirectX::XMFLOAT4X4 Helper::UpdateLightViewMatrix(DirectX::XMFLOAT3 a_lightDirection, DirectX::XMFLOAT4X4 a_lightViewMatrix)
+DirectX::XMFLOAT4X4 Helper::CalculateNewLightViewMatrix(DirectX::XMFLOAT3 a_lightDirection, DirectX::XMFLOAT4X4 a_lightViewMatrix)
 {
 	DirectX::XMVECTOR direction = DirectX::XMLoadFloat3(&a_lightDirection);
 	DirectX::XMVECTOR negativeDirection = DirectX::XMVectorNegate(direction);
