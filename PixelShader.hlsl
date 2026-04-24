@@ -203,7 +203,7 @@ float4 main(VertexToPixel input) : SV_TARGET
     //    return float4(0, 0, 0, 1);
     //}
 	float shadowAmount = ShadowMap.SampleCmpLevelZero(ShadowSampler, shadowUV, distToLight).r;
-    return shadowAmount;
+    //return shadowAmount;
 	   
 	float4 albedoColor =
 		pow(AlbedoTexture.Sample(BasicSampler, input.uv), 2.2) *

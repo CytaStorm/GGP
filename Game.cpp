@@ -328,9 +328,9 @@ void Game::CreateEntities(
 	m_entitiesList.push_back(GameEntity(m_pHelix, green));
 	m_entitiesList.push_back(GameEntity(m_pPlane, white));
 
-	m_entitiesList[0].GetTransform().MoveAbsolute(0.0f, 0.0f, 10.0f);
-	m_entitiesList[1].GetTransform().MoveAbsolute(3.0f, 0.0f, 10.0f);
-	m_entitiesList[2].GetTransform().MoveAbsolute(6.0f, 0.0f, 10.0f);
+	m_entitiesList[0].GetTransform().MoveAbsolute(0.0f, 0.0f, 1.0f);
+	m_entitiesList[1].GetTransform().MoveAbsolute(3.0f, 0.0f, 1.0f);
+	m_entitiesList[2].GetTransform().MoveAbsolute(6.0f, 0.0f, 1.0f);
 	m_entitiesList[3].GetTransform().MoveAbsolute(6.0f, -5.0f, 15.0f);
 }
 
