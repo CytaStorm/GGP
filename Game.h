@@ -54,6 +54,7 @@ private:
 		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader);
 
 	void CreateLights();
+	void CreatePostProcess();
 
 
 	// Note the usage of ComPtr below
@@ -126,4 +127,14 @@ private:
 
 	DirectX::XMFLOAT4X4 m_lightViewMatrix;
 	DirectX::XMFLOAT4X4 m_lightProjectionMatrix;
+
+	//post process
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pPostProcessSampler;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_pPostProcessVS;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPostProcessPS;
+
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPostProcessRTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPostProcessSRV;
+
+	//Microsoft::WRL::ComPtr<ID3D11Texture2D*> m_pPostProcessTexture;
 };
