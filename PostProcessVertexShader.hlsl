@@ -1,8 +1,4 @@
-struct PostProcessVertexToPixel
-{
-    float4 position : SV_POSITION;
-    float2 uv : TEXCOORD0;
-};
+#include "ShaderIncludes.hlsli"
 
 PostProcessVertexToPixel main( uint id : SV_VertexID )
 {

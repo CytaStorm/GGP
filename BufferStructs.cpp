@@ -8,6 +8,8 @@ VSConstantBuffer::VSConstantBuffer()
 	DirectX::XMStoreFloat4x4(&m_viewMatrix, DirectX::XMMatrixIdentity());
 	DirectX::XMStoreFloat4x4(&m_worldInverseTranspose, DirectX::XMMatrixIdentity());
 	// white tint, original color shown
+	DirectX::XMStoreFloat4x4(&m_lightViewMatrix, DirectX::XMMatrixIdentity());
+	DirectX::XMStoreFloat4x4(&m_lightProjectionMatrix, DirectX::XMMatrixIdentity());
 }
 
 PSConstantBuffer::PSConstantBuffer()
@@ -20,6 +22,8 @@ PSConstantBuffer::PSConstantBuffer()
 	for (int i = 0; i < 5; i++) {
 		m_lights[i] = Light{};
 	}
+	DirectX::XMStoreFloat4x4(&m_lightViewMatrix, DirectX::XMMatrixIdentity());
+	DirectX::XMStoreFloat4x4(&m_lightProjectionMatrix, DirectX::XMMatrixIdentity());
 }
 
 SkyVSConstantBuffer::SkyVSConstantBuffer()
@@ -36,4 +40,7 @@ SkyVSConstantBuffer::SkyVSConstantBuffer(DirectX::XMFLOAT4X4 a_projectionMatrix,
 
 ShadowVSData::ShadowVSData()
 {
+	DirectX::XMStoreFloat4x4(&m_proj, DirectX::XMMatrixIdentity());
+	DirectX::XMStoreFloat4x4(&m_view, DirectX::XMMatrixIdentity());
+	DirectX::XMStoreFloat4x4(&m_world, DirectX::XMMatrixIdentity());
 }

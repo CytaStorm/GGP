@@ -57,6 +57,7 @@ private:
 	void CreatePostProcess();
 
 
+	float m_clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f};
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
 	//     Component Object Model, which DirectX objects do

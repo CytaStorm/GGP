@@ -756,10 +756,26 @@ void Game::Draw(float deltaTime, float totalTime)
 		// Clear the back buffer (erase what's on screen) and depth buffer
 		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	m_color);
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+		Graphics::Context->ClearRenderTargetView(m_pPostProcessRTV.Get(), m_clearColor);
+		Graphics::Context->ClearDepthStencilView(m_pShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
 	}
 	{
+		//setting renders
+		Graphics::Context->OMSetRenderTargets(1, m_pPostProcessRTV.GetAddressOf(), Graphics::DepthBufferDSV.Get());
+		Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
+
+		// Activate shaders and bind resources
+		Graphics::Context->VSSetShader(fullscreenVS.Get(), 0, 0);
+		Graphics::Context->PSSetShader(blurPS.Get(), 0, 0);
+		Graphics::Context->PSSetShaderResources(0, 1, ppSRV.GetAddressOf());
+		Graphics::Context->PSSetSamplers(0, 1, ppSampler.GetAddressOf());
+		// Also set any required cbuffer data here! (not shown)
+		Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
+	}
+
+	{
 		//shadow
-		Graphics::Context->ClearDepthStencilView(m_pShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 		ID3D11RenderTargetView* nullRTV{ };
 		Graphics::Context->OMSetRenderTargets(1, &nullRTV, m_pShadowDSV.Get());
 		Graphics::Context->PSSetShader(0, 0, 0);
@@ -860,6 +876,10 @@ void Game::Draw(float deltaTime, float totalTime)
 		ID3D11ShaderResourceView* nullSRVs[128] = {};
 		Graphics::Context->PSSetShaderResources(0, 128, nullSRVs);
 	}
+
+	//post processing
+
+	Graphics::Context->ClearRenderTargetView(m_pPostProcessRTV.Get(), m_clearColor);
 
 }
 
