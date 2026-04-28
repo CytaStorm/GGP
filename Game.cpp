@@ -57,6 +57,8 @@ Game::Game()
 	LoadPixelShader<PSConstantBuffer>(
 		PSConstantBuffer(), pixelShader, m_pPSConstantBuffer, L"PixelShader.cso");
 
+	LoadVertexShader<
+
 	//Set constant buffers
 	Graphics::Context->VSSetConstantBuffers(0, 1, m_pVSConstantBuffer.GetAddressOf());
 
@@ -768,8 +770,8 @@ void Game::Draw(float deltaTime, float totalTime)
 		// Activate shaders and bind resources
 		Graphics::Context->VSSetShader(fullscreenVS.Get(), 0, 0);
 		Graphics::Context->PSSetShader(blurPS.Get(), 0, 0);
-		Graphics::Context->PSSetShaderResources(0, 1, ppSRV.GetAddressOf());
-		Graphics::Context->PSSetSamplers(0, 1, ppSampler.GetAddressOf());
+		Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessSRV.GetAddressOf());
+		Graphics::Context->PSSetSamplers(0, 1, m_pPostProcessSampler.GetAddressOf());
 		// Also set any required cbuffer data here! (not shown)
 		Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
 	}

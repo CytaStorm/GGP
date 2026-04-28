@@ -45,4 +45,10 @@ struct VertexToPixel_Sky
     float4 position : SV_POSITION;
     float3 sampleDir : DIRECTION;
 };
+
+struct PostProcessVertexToPixel
+{
+    float4 position : SV_POSITION;
+    float2 uv : TEXCOORD0;
+};
 #endif

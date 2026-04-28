@@ -2,7 +2,6 @@
 
 PostProcessVertexToPixel main( uint id : SV_VertexID )
 {
-
     PostProcessVertexToPixel output;
     // Calculate the UV (0,0) to (2,2) using the ID
     output.uv = float2(
