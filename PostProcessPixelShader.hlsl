@@ -3,7 +3,7 @@
 Texture2D Pixels : register(t0);
 SamplerState ClampSampler : register(s0);
 
-PostProcessVertexToPixel main(PostProcessVertexToPixel input) : SV_TARGET
+float4 main(PostProcessVertexToPixel input) : SV_TARGET
 {
     float4 pixelColor = Pixels.Sample(ClampSampler, input.uv);
     // NOTE: Here is where you should actually "process" the image

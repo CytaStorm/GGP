@@ -50,14 +50,12 @@ Game::Game()
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
 
 	//shader
-	LoadVertexShader<ShadowVSData>(m_pVSInputLayout, m_pShadowVS, m_pShadowVSConstantBuffer, L"ShadowVertexShader.cso");
+	LoadVertexShaderWithConstantBuffer<ShadowVSData>(m_pVSInputLayout, m_pShadowVS, m_pShadowVSConstantBuffer, L"ShadowVertexShader.cso");
 	m_pVSInputLayout.Reset(); //reset input layout to prevent mem leak
 
-	LoadVertexShader<VSConstantBuffer>(m_pVSInputLayout, vertexShader, m_pVSConstantBuffer, L"VertexShader.cso");
-	LoadPixelShader<PSConstantBuffer>(
+	LoadVertexShaderWithConstantBuffer<VSConstantBuffer>(m_pVSInputLayout, vertexShader, m_pVSConstantBuffer, L"VertexShader.cso");
+	LoadPixelShaderWithConstantBuffer<PSConstantBuffer>(
 		PSConstantBuffer(), pixelShader, m_pPSConstantBuffer, L"PixelShader.cso");
-
-	LoadVertexShader<
 
 	//Set constant buffers
 	Graphics::Context->VSSetConstantBuffers(0, 1, m_pVSConstantBuffer.GetAddressOf());
@@ -67,6 +65,7 @@ Game::Game()
 	//Sky
 	CreateLights();
 	CreateGeometry();
+	CreatePostProcess();
 
 	//sampler state created in here
 	CreateEntities(vertexShader, pixelShader);
@@ -130,20 +129,13 @@ Game::~Game()
 // - We'll have that byte code already loaded below
 // --------------------------------------------------------
 template <typename VSConstantBufferStruct>
-void Game::LoadVertexShader(
+void Game::LoadVertexShaderWithConstantBuffer(
 	Microsoft::WRL::ComPtr<ID3D11InputLayout>& a_pInputLayout,
 	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
 	Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pVertexShaderConstantBuffer,
-	std::wstring a_fileName)
+	const std::wstring a_fileName)
 {
-	ID3DBlob* vertexShaderBlob;
-	D3DReadFileToBlob(FixPath(a_fileName).c_str(), &vertexShaderBlob);
-
-	Graphics::Device->CreateVertexShader(
-		vertexShaderBlob->GetBufferPointer(), // Pointer to start of binary data
-		vertexShaderBlob->GetBufferSize(),// How big is that data?
-		0,// No classes in this shader
-		a_pVertexShader.GetAddressOf());// ID3D11VertexShader**
+	ID3DBlob* vertexShaderBlob = LoadVertexShaderInternal(a_fileName, a_pVertexShader);
 	
 	//input layout
 	D3D11_INPUT_ELEMENT_DESC inputElements[4] = {};
@@ -186,21 +178,30 @@ void Game::LoadVertexShader(
 	Graphics::Device->CreateBuffer(&VS_ConstantBufferDesc, 0, a_pVertexShaderConstantBuffer.GetAddressOf());
 }
 
+ID3DBlob* Game::LoadVertexShaderInternal(
+	const std::wstring& a_fileName, 
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader)
+{
+	ID3DBlob* vertexShaderBlob;
+	D3DReadFileToBlob(FixPath(a_fileName).c_str(), &vertexShaderBlob);
+
+	Graphics::Device->CreateVertexShader(
+		vertexShaderBlob->GetBufferPointer(), // Pointer to start of binary data
+		vertexShaderBlob->GetBufferSize(),// How big is that data?
+		0,// No classes in this shader
+		a_pVertexShader.GetAddressOf());// ID3D11VertexShader**
+
+	return vertexShaderBlob;
+}
+
 template <typename PSConstantBufferStruct>
-void Game::LoadPixelShader(
+void Game::LoadPixelShaderWithConstantBuffer(
 	PSConstantBufferStruct a_pixelBufferStruct,
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader,
 	Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pPixelShaderConstantBuffer,
-	std::wstring a_fileName)
+	const std::wstring a_fileName)
 {
-	ID3DBlob* pixelShaderBlob;
-	D3DReadFileToBlob(FixPath(a_fileName).c_str(), &pixelShaderBlob);
-
-	Graphics::Device->CreatePixelShader(
-		pixelShaderBlob->GetBufferPointer(), // Pointer to start of binary data
-		pixelShaderBlob->GetBufferSize(),// How big is that data?
-		0,// No classes in this shader
-		a_pPixelShader.GetAddressOf());// ID3D11VertexShader**
+	LoadPixelShaderInternal(a_fileName, a_pPixelShader);
 
 	a_pPixelShaderConstantBuffer.Reset();
 	//Create & bind pixel shader constant buffer
@@ -211,6 +212,20 @@ void Game::LoadPixelShader(
 	PS_ConstantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	
 	Graphics::Device->CreateBuffer(&PS_ConstantBufferDesc, 0, a_pPixelShaderConstantBuffer.GetAddressOf());
+}
+
+void Game::LoadPixelShaderInternal(
+	const std::wstring& a_fileName,
+	Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader)
+{
+	ID3DBlob* pixelShaderBlob;
+	D3DReadFileToBlob(FixPath(a_fileName).c_str(), &pixelShaderBlob);
+
+	Graphics::Device->CreatePixelShader(
+		pixelShaderBlob->GetBufferPointer(), // Pointer to start of binary data
+		pixelShaderBlob->GetBufferSize(),// How big is that data?
+		0,// No classes in this shader
+		a_pPixelShader.GetAddressOf());// ID3D11VertexShader**
 }
 
 // --------------------------------------------------------
@@ -486,6 +501,33 @@ void Game::CreatePostProcess() {
 	// Create the Shader Resource View by passing it a null description for the SRV, we get a
 	// "default" SRV that has access to the entire resource
 	Graphics::Device->CreateShaderResourceView(ppTexture.Get(), 0, m_pPostProcessSRV.ReleaseAndGetAddressOf());
+
+	//Load shaders
+	{
+		//vert shader
+		ID3DBlob* vertexShaderBlob = LoadVertexShaderInternal(L"PostProcessVertexShader.cso", m_pPostProcessVS);
+		D3D11_INPUT_ELEMENT_DESC inputElements[2] = {};
+
+		//input layout
+		inputElements[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		inputElements[0].SemanticName = "SV_POSITION";
+		inputElements[0].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+
+		inputElements[1].Format = DXGI_FORMAT_R32G32_FLOAT;
+		inputElements[1].SemanticName = "TEXCOORD";
+		inputElements[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+
+		Graphics::Device->CreateInputLayout(
+			inputElements,							// An array of descriptions
+			2,										// How many elements in that array?
+			vertexShaderBlob->GetBufferPointer(),	// Pointer to the code of a shader that uses this layout
+			vertexShaderBlob->GetBufferSize(),		// Size of the shader code that uses this layout
+			m_pPostProcessVSInputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
+	}
+	{
+		//pixel shader
+		LoadPixelShaderInternal(L"PostProcessPixelShader.cso", m_pPostProcessPS);
+	}
 }
 
 
@@ -548,7 +590,7 @@ void Game::BuildUI() {
 		ImGui::TreePop();
 	}
 
-	ImGui::ColorEdit4("Background Color", m_color);
+	ImGui::ColorEdit4("Background Color", m_backgroundColor);
 		
 	if (ImGui::Button("Press to toggle demo window!")) {
 		m_showDemoWindow = !m_showDemoWindow;
@@ -756,26 +798,11 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	{
 		// Clear the back buffer (erase what's on screen) and depth buffer
-		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	m_color);
+		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	m_backgroundColor);
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-		Graphics::Context->ClearRenderTargetView(m_pPostProcessRTV.Get(), m_clearColor);
 		Graphics::Context->ClearDepthStencilView(m_pShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	}
-	{
-		//setting renders
-		Graphics::Context->OMSetRenderTargets(1, m_pPostProcessRTV.GetAddressOf(), Graphics::DepthBufferDSV.Get());
-		Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
-
-		// Activate shaders and bind resources
-		Graphics::Context->VSSetShader(fullscreenVS.Get(), 0, 0);
-		Graphics::Context->PSSetShader(blurPS.Get(), 0, 0);
-		Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessSRV.GetAddressOf());
-		Graphics::Context->PSSetSamplers(0, 1, m_pPostProcessSampler.GetAddressOf());
-		// Also set any required cbuffer data here! (not shown)
-		Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
-	}
-
 	{
 		//shadow
 		ID3D11RenderTargetView* nullRTV{ };
@@ -811,6 +838,9 @@ void Game::Draw(float deltaTime, float totalTime)
 			Graphics::DepthBufferDSV.Get());
 	}
 
+	//post process rtv
+	Graphics::Context->ClearRenderTargetView(m_pPostProcessRTV.Get(), m_backgroundColor);
+	Graphics::Context->OMSetRenderTargets(1, m_pPostProcessRTV.GetAddressOf(), Graphics::DepthBufferDSV.Get());
 
 	// DRAW geometry
 	// - These steps are generally repeated for EACH object you draw
@@ -856,6 +886,21 @@ void Game::Draw(float deltaTime, float totalTime)
 		m_sky.Draw(m_pActiveCamera);
 	}
 
+	{
+		//post processing
+		Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
+
+		// Activate shaders and bind resources
+		Graphics::Context->VSSetShader(m_pPostProcessVS.Get(), 0, 0);
+		Graphics::Context->PSSetShader(m_pPostProcessPS.Get(), 0, 0);
+		Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessSRV.GetAddressOf());
+		Graphics::Context->PSSetSamplers(0, 1, m_pPostProcessSampler.GetAddressOf());
+		// Also set any required cbuffer data here! (not shown)
+		Graphics::Context->IASetInputLayout(m_pPostProcessVSInputLayout.Get());
+		Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
+		Graphics::Context->IASetInputLayout(m_pVSInputLayout.Get());
+	}
+
 	// Frame END
 	// - These should happen exactly ONCE PER FRAME
 	// - At the very end of the frame (after drawing *everything*)
@@ -878,11 +923,6 @@ void Game::Draw(float deltaTime, float totalTime)
 		ID3D11ShaderResourceView* nullSRVs[128] = {};
 		Graphics::Context->PSSetShaderResources(0, 128, nullSRVs);
 	}
-
-	//post processing
-
-	Graphics::Context->ClearRenderTargetView(m_pPostProcessRTV.Get(), m_clearColor);
-
 }
 
 void Game::UpdateEntityLights() {

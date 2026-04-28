@@ -33,19 +33,27 @@ public:
 
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
 	template<typename VSConstantBufferStruct>
-	static void LoadVertexShader(
+	static void LoadVertexShaderWithConstantBuffer(
 		Microsoft::WRL::ComPtr<ID3D11InputLayout>& a_pInputLayout,
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
 		Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pVertexShaderConstantBuffer,
 		const std::wstring a_fileName);
 
+	static ID3DBlob* LoadVertexShaderInternal(
+		const std::wstring& a_fileName,
+		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader);
+
 	//templated function in case other sized constant buffer structs are to be used
 	template <typename PSConstantBufferStruct>
-	static void LoadPixelShader(
+	static void LoadPixelShaderWithConstantBuffer(
 		PSConstantBufferStruct value,
 		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader,
 		Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pPixelShaderConstantBuffer,
 		const std::wstring a_fileName);
+
+	static void LoadPixelShaderInternal(
+		const std::wstring& a_fileName, 
+		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader);
 
 private:
 	void CreateGeometry();
@@ -57,7 +65,6 @@ private:
 	void CreatePostProcess();
 
 
-	float m_clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f};
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
 	//     Component Object Model, which DirectX objects do
@@ -72,7 +79,7 @@ private:
 
 	// holding data
 	int m_number;
-	float m_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	float m_backgroundColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	bool m_showDemoWindow = false;
 	std::string m_title = "My first window!";
 	char m_test[100];
@@ -132,6 +139,7 @@ private:
 	//post process
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pPostProcessSampler;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_pPostProcessVS;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pPostProcessVSInputLayout;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPostProcessPS;
 
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPostProcessRTV;

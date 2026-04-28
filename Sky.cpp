@@ -28,7 +28,7 @@ Sky::Sky(
 	Microsoft::WRL::ComPtr<ID3D11Buffer> pPSConstantBuffer;
 
 	//vert
-	Game::LoadVertexShader<VSConstantBuffer>(
+	Game::LoadVertexShaderWithConstantBuffer<VSConstantBuffer>(
 		pInputLayout,
 		m_pVertexShader,
 		pVSConstantBuffer,
@@ -36,7 +36,7 @@ Sky::Sky(
 	);
 	
 	//pix
-	Game::LoadPixelShader<PSConstantBuffer>(
+	Game::LoadPixelShaderWithConstantBuffer<PSConstantBuffer>(
 		PSConstantBuffer(),
 		m_pPixelShader,
 		pPSConstantBuffer,
