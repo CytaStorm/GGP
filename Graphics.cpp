@@ -192,7 +192,7 @@ void Graphics::ShutDown()
 {
 	Microsoft::WRL::ComPtr<IDXGIDebug1> debug;
 	DXGIGetDebugInterface1(0, IID_PPV_ARGS(debug.GetAddressOf()));
-	debug->ReportLiveObjects(DXGI_DEBUG_D3D11, DXGI_DEBUG_RLO_IGNORE_INTERNAL);
+	debug->ReportLiveObjects(DXGI_DEBUG_D3D11, DXGI_DEBUG_RLO_ALL);
 }
 
 
