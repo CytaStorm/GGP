@@ -139,6 +139,7 @@ int WINAPI WinMain(
 
 	// Clean up
 	delete game;
+	game = nullptr;
 	Input::ShutDown();
 	Graphics::ShutDown();
 	return (HRESULT)msg.wParam;

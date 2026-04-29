@@ -27,7 +27,7 @@ namespace Graphics
 
 	inline Microsoft::WRL::ComPtr<ID3D11DeviceContext1> context1;
 
-	inline Microsoft::WRL::ComPtr<ID3D11Buffer> ConstantBufferHeap;
+	inline Microsoft::WRL::ComPtr<ID3D11Buffer> m_pConstantBufferHeap;
 
 	inline unsigned int cbHeapSizeInBytes;
 	

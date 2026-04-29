@@ -175,7 +175,7 @@ HRESULT Graphics::Initialize(unsigned int windowWidth, unsigned int windowHeight
 	RingBufferDesc.ByteWidth = cbHeapSizeInBytes;
 	RingBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	RingBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	Graphics::Device->CreateBuffer(&RingBufferDesc, 0, ConstantBufferHeap.GetAddressOf());
+	Graphics::Device->CreateBuffer(&RingBufferDesc, 0, m_pConstantBufferHeap.GetAddressOf());
 
 	return S_OK;
 }
@@ -190,9 +190,18 @@ HRESULT Graphics::Initialize(unsigned int windowWidth, unsigned int windowHeight
 // --------------------------------------------------------
 void Graphics::ShutDown()
 {
-	Microsoft::WRL::ComPtr<IDXGIDebug1> debug;
-	DXGIGetDebugInterface1(0, IID_PPV_ARGS(debug.GetAddressOf()));
-	debug->ReportLiveObjects(DXGI_DEBUG_D3D11, DXGI_DEBUG_RLO_ALL);
+	//m_pConstantBufferHeap.Reset();
+	//BackBufferRTV.Reset();
+	//DepthBufferDSV.Reset();
+	//Context.Reset();
+	//SwapChain.Reset();
+	//context1.Reset();
+	//Device.ReleaseAndGetAddressOf();
+
+	//Microsoft::WRL::ComPtr<IDXGIDebug1> debug;
+	//DXGIGetDebugInterface1(0, IID_PPV_ARGS(debug.GetAddressOf()));
+	//debug->ReportLiveObjects(DXGI_DEBUG_D3D11, DXGI_DEBUG_RLO_ALL);
+	//debug->Release();
 }
 
 
@@ -347,7 +356,7 @@ void Graphics::FillAndBindNextConstantBuffer(void* a_data, unsigned int a_dataSi
 
 	D3D11_MAPPED_SUBRESOURCE map{};
 	Context->Map(
-		ConstantBufferHeap.Get(),
+		m_pConstantBufferHeap.Get(),
 		0,
 		D3D11_MAP_WRITE_NO_OVERWRITE,
 		0,
@@ -356,7 +365,7 @@ void Graphics::FillAndBindNextConstantBuffer(void* a_data, unsigned int a_dataSi
 	void* uploadAddress = reinterpret_cast<void*>((UINT64)map.pData + cbHeapOffsetInBytes);
 	memcpy(uploadAddress, a_data, a_dataSizeInBytes);
 
-	Context->Unmap(ConstantBufferHeap.Get(), 0);
+	Context->Unmap(m_pConstantBufferHeap.Get(), 0);
 
 	unsigned int firstConstant = cbHeapOffsetInBytes / 16;
 	unsigned int numConstants = reservationSize / 16;
@@ -366,7 +375,7 @@ void Graphics::FillAndBindNextConstantBuffer(void* a_data, unsigned int a_dataSi
 		context1->VSSetConstantBuffers1(
 			a_registerSlot,
 			1,
-			ConstantBufferHeap.GetAddressOf(),
+			m_pConstantBufferHeap.GetAddressOf(),
 			&firstConstant,
 			&numConstants);
 		break;
@@ -374,7 +383,7 @@ void Graphics::FillAndBindNextConstantBuffer(void* a_data, unsigned int a_dataSi
 		context1->PSSetConstantBuffers1(
 			a_registerSlot,
 			1,
-			ConstantBufferHeap.GetAddressOf(),
+			m_pConstantBufferHeap.GetAddressOf(),
 			&firstConstant,
 			&numConstants);
 		break;

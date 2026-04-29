@@ -717,10 +717,10 @@ void Game::Draw(float deltaTime, float totalTime)
 
 		Graphics::Context->RSSetViewports(1, &viewport);
 
-		Graphics::Context->OMSetRenderTargets(
-			1, 
-			Graphics::BackBufferRTV.GetAddressOf(),
-			Graphics::DepthBufferDSV.Get());
+		//Graphics::Context->OMSetRenderTargets(
+		//	1, 
+		//	Graphics::BackBufferRTV.GetAddressOf(),
+		//	Graphics::DepthBufferDSV.Get());
 	}
 
 	//post process rtv
@@ -769,7 +769,7 @@ void Game::Draw(float deltaTime, float totalTime)
 				m_lightViewMatrix, 
 				m_lightProjectionMatrix);
 		}
-		m_sky.Draw(m_pActiveCamera);
+		//m_sky.Draw(m_pActiveCamera);
 	}
 
 	{
@@ -821,6 +821,7 @@ void Game::Draw(float deltaTime, float totalTime)
 			Graphics::DepthBufferDSV.Get());
 
 		
+		//reset
 		ID3D11ShaderResourceView* nullSRVs[128] = {};
 		Graphics::Context->PSSetShaderResources(0, 128, nullSRVs);
 	}

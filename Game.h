@@ -45,10 +45,6 @@ private:
 	//     Component Object Model, which DirectX objects do
 	//  - More info here: https://github.com/Microsoft/DirectXTK/wiki/ComPtr
 
-	// Buffers to hold actual geometry data
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pIndexBuffer;
-
 	// Shaders and shader-related constructs
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pVSInputLayout;
 
