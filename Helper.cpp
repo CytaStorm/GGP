@@ -42,6 +42,45 @@ DirectX::XMFLOAT4X4 Helper::CalculateNewLightViewMatrix(DirectX::XMFLOAT3 a_ligh
 	return a_lightViewMatrix;
 }
 
+void Helper::LoadVertexShader(
+	Microsoft::WRL::ComPtr<ID3D11InputLayout>& a_pInputLayout,
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
+	const std::wstring a_fileName)
+{
+	ID3DBlob* vertexShaderBlob = LoadVertexShaderInternal(a_fileName, a_pVertexShader);
+
+	//input layout
+	D3D11_INPUT_ELEMENT_DESC inputElements[4] = {};
+
+	// Set up the first element - a position, which is 3 float values
+	inputElements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;				// Most formats are described as color channels; really it just means "Three 32-bit floats"
+	inputElements[0].SemanticName = "POSITION";							// This is "POSITION" - needs to match the semantics in our vertex shader input!
+	inputElements[0].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	// How far into the vertex is this?  Assume it's after the previous element
+
+	//set up uv coords
+	inputElements[1].Format = DXGI_FORMAT_R32G32_FLOAT;
+	inputElements[1].SemanticName = "TEXCOORD";
+	inputElements[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+
+	//set up normal
+	inputElements[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	inputElements[2].SemanticName = "NORMAL";
+	inputElements[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+
+	//set up tangent
+	inputElements[3].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	inputElements[3].SemanticName = "TANGENT";
+	inputElements[3].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+
+	// Create the input layout, verifying our description against actual shader code
+	Graphics::Device->CreateInputLayout(
+		inputElements,							// An array of descriptions
+		4,										// How many elements in that array?
+		vertexShaderBlob->GetBufferPointer(),	// Pointer to the code of a shader that uses this layout
+		vertexShaderBlob->GetBufferSize(),		// Size of the shader code that uses this layout
+		a_pInputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
+}
+
 ID3DBlob* Helper::LoadVertexShaderInternal(const std::wstring& a_fileName, Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader)
 {
 	ID3DBlob* vertexShaderBlob;
@@ -56,7 +95,7 @@ ID3DBlob* Helper::LoadVertexShaderInternal(const std::wstring& a_fileName, Micro
 	return vertexShaderBlob;
 }
 
-void Helper::LoadPixelShaderInternal(const std::wstring& a_fileName, Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader)
+void Helper::LoadPixelShader(const std::wstring& a_fileName, Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader)
 {
 	ID3DBlob* pixelShaderBlob;
 	D3DReadFileToBlob(FixPath(a_fileName).c_str(), &pixelShaderBlob);

@@ -48,18 +48,14 @@ Game::Game()
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
 
 	//shader
-	Helper::LoadVertexShaderWithConstantBuffer<ShadowVSData>(m_pVSInputLayout, m_pShadowVS, m_pShadowVSConstantBuffer, L"ShadowVertexShader.cso");
+	Helper::LoadVertexShader(m_pVSInputLayout, m_pShadowVS, L"ShadowVertexShader.cso");
 	m_pVSInputLayout.Reset(); //reset input layout to prevent mem leak
 
-	Helper::LoadVertexShaderWithConstantBuffer<VSConstantBuffer>(m_pVSInputLayout, vertexShader, m_pVSConstantBuffer, L"VertexShader.cso");
-	Helper::LoadPixelShaderInternal(L"PixelShader.cso", pixelShader);
+	Helper::LoadVertexShader(m_pVSInputLayout, vertexShader, L"VertexShader.cso");
+
+	Helper::LoadPixelShader(L"PixelShader.cso", pixelShader);
 	//LoadPixelShaderWithConstantBuffer<PSConstantBuffer>(
 	//	PSConstantBuffer(), pixelShader, m_pPSConstantBuffer, L"PixelShader.cso");
-
-	//Set constant buffers
-	Graphics::Context->VSSetConstantBuffers(0, 1, m_pVSConstantBuffer.GetAddressOf());
-
-	Graphics::Context->PSSetConstantBuffers(0, 1, m_pPSConstantBuffer.GetAddressOf());
 
 	//Sky
 	CreateLights();
@@ -414,8 +410,8 @@ void Game::CreatePostProcess() {
 	}
 	{
 		//pixel shader
-		Helper::LoadPixelShaderInternal(L"PixelShader_HorizontalGauss.cso", m_pPostProcessHorizontalGaussPS);
-		Helper::LoadPixelShaderInternal(L"PixelShader_VerticalGauss.cso", m_pPostProcessVerticalGaussPS);
+		Helper::LoadPixelShader(L"PixelShader_HorizontalGauss.cso", m_pPostProcessHorizontalGaussPS);
+		Helper::LoadPixelShader(L"PixelShader_VerticalGauss.cso", m_pPostProcessVerticalGaussPS);
 	}
 }
 

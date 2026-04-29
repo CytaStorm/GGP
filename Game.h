@@ -81,11 +81,6 @@ private:
 	//Materials
 	std::vector<Material> m_materialsList;
 
-	//Constant buffer for vertex shader
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVSConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pShadowVSConstantBuffer; //shadow
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pPSConstantBuffer;
-
 	//Cameras
 	std::vector<std::shared_ptr<Camera>> m_camerasList;
 	std::shared_ptr<Camera> m_pActiveCamera;

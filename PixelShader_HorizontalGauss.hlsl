@@ -8,7 +8,7 @@ cbuffer PostProcessGaussConstantBuffer : register(b0)
     float blurAmount;
 };
 
-float4 main(PostProcessVertexToPixel input) : SV_TARGET
+float4 main(VertexToPixel input) : SV_TARGET
 {
     float4 pixelColor = Pixels.Sample(ClampSampler, input.uv);
     // NOTE: Here is where you should actually "process" the image

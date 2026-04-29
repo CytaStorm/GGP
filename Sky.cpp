@@ -29,20 +29,24 @@ Sky::Sky(
 	Microsoft::WRL::ComPtr<ID3D11Buffer> pPSConstantBuffer;
 
 	//vert
-	Helper::LoadVertexShaderWithConstantBuffer<VSConstantBuffer>(
-		pInputLayout,
-		m_pVertexShader,
-		pVSConstantBuffer,
-		a_skyVertexShaderFilePath
-	);
+	//Helper::LoadVertexShaderWithConstantBuffer<VSConstantBuffer>(
+	//	pInputLayout,
+	//	m_pVertexShader,
+	//	pVSConstantBuffer,
+	//	a_skyVertexShaderFilePath
+	//);
+
+	Helper::LoadVertexShaderInternal(a_skyVertexShaderFilePath, m_pVertexShader);
 	
 	//pix
-	Helper::LoadPixelShaderWithConstantBuffer<PSConstantBuffer>(
-		PSConstantBuffer(),
-		m_pPixelShader,
-		pPSConstantBuffer,
-		a_skyPixelShaderFilePath
-	);
+	//Helper::LoadPixelShaderWithConstantBuffer<PSConstantBuffer>(
+	//	PSConstantBuffer(),
+	//	m_pPixelShader,
+	//	pPSConstantBuffer,
+	//	a_skyPixelShaderFilePath
+	//);
+
+	Helper::LoadPixelShader(a_skyPixelShaderFilePath, m_pPixelShader);
 	
 
 	//m_pMaterial = std::make_shared<Material>(
