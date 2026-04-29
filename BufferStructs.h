@@ -47,10 +47,21 @@ struct ShadowVSData
 	ShadowVSData();
 };
 
-struct GaussianBlurPostProcessConstantBuffer 
+struct GaussianBlurPostProcessConstantBufferHorizontal
 {
-	float m_blurAmount;
+	int m_blurRadius;
+	float m_pixelWidth;
 	
-	GaussianBlurPostProcessConstantBuffer();
+	GaussianBlurPostProcessConstantBufferHorizontal();
+	GaussianBlurPostProcessConstantBufferHorizontal(int a_blurRadius, float a_pixelWidth);
+};
+
+struct GaussianBlurPostProcessConstantBufferVertical
+{
+	int m_blurRadius;
+	float m_pixelHeight;
+	
+	GaussianBlurPostProcessConstantBufferVertical();
+	GaussianBlurPostProcessConstantBufferVertical(int a_blurRadius, float a_pixelHeight);
 };
 

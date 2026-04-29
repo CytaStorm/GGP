@@ -45,7 +45,26 @@ ShadowVSData::ShadowVSData()
 	DirectX::XMStoreFloat4x4(&m_world, DirectX::XMMatrixIdentity());
 }
 
-GaussianBlurPostProcessConstantBuffer::GaussianBlurPostProcessConstantBuffer()
+GaussianBlurPostProcessConstantBufferHorizontal::GaussianBlurPostProcessConstantBufferHorizontal()
 {
-	m_blurAmount = 0;
+	m_blurRadius = 0;
+	m_pixelWidth = 0;
+}
+
+GaussianBlurPostProcessConstantBufferHorizontal::GaussianBlurPostProcessConstantBufferHorizontal(int a_blurRadius, float a_pixelWidth)
+{
+	m_blurRadius = a_blurRadius;
+	m_pixelWidth = a_pixelWidth;
+}
+
+GaussianBlurPostProcessConstantBufferVertical::GaussianBlurPostProcessConstantBufferVertical()
+{
+	m_blurRadius = 0;
+	m_pixelHeight = 0;
+}
+
+GaussianBlurPostProcessConstantBufferVertical::GaussianBlurPostProcessConstantBufferVertical(int a_blurRadius, float a_pixelHeight)
+{
+	m_blurRadius = a_blurRadius;
+	m_pixelHeight = a_pixelHeight;
 }

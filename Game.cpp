@@ -355,36 +355,7 @@ void Game::CreatePostProcess() {
 
 	Graphics::Device->CreateSamplerState(&ppSampDesc, m_pPostProcessSampler.GetAddressOf());
 
-	// Describe the texture we're creating
-
-	D3D11_TEXTURE2D_DESC textureDesc = {};
-
-	textureDesc.Width = Window::Width();
-	textureDesc.Height = Window::Height();
-	textureDesc.ArraySize = 1;
-	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	textureDesc.CPUAccessFlags = 0;
-	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	textureDesc.MipLevels = 1;
-	textureDesc.MiscFlags = 0;
-	textureDesc.SampleDesc.Count = 1;
-	textureDesc.SampleDesc.Quality = 0;
-	textureDesc.Usage = D3D11_USAGE_DEFAULT;
-
-	// Create the resource (no need to track it after the views are created below)
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTexture;
-	Graphics::Device->CreateTexture2D(&textureDesc, 0, ppTexture.GetAddressOf());
-
-	// Create the Render Target View
-
-	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-	rtvDesc.Format = textureDesc.Format;
-	rtvDesc.Texture2D.MipSlice = 0;
-	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-	Graphics::Device->CreateRenderTargetView(ppTexture.Get(), &rtvDesc, m_pPostProcessRTV.ReleaseAndGetAddressOf());
-	// Create the Shader Resource View by passing it a null description for the SRV, we get a
-	// "default" SRV that has access to the entire resource
-	Graphics::Device->CreateShaderResourceView(ppTexture.Get(), 0, m_pPostProcessSRV.ReleaseAndGetAddressOf());
+	CreatePostProcessSRV_RTV();
 
 	//Load shaders
 	{
@@ -415,6 +386,47 @@ void Game::CreatePostProcess() {
 	}
 }
 
+void Game::CreatePostProcessSRV_RTV()
+{
+	// Describe the texture we're creating
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+
+	textureDesc.Width = Window::Width();
+	textureDesc.Height = Window::Height();
+	textureDesc.ArraySize = 1;
+	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.CPUAccessFlags = 0;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.MipLevels = 1;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_TEXTURE2D_DESC textureDescGaussV = textureDesc;
+
+	// Create the resource (no need to track it after the views are created below)
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTexture;
+	Graphics::Device->CreateTexture2D(&textureDesc, 0, ppTexture.GetAddressOf());
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTextureGaussV;
+	Graphics::Device->CreateTexture2D(&textureDescGaussV, 0, ppTextureGaussV.GetAddressOf());
+	// Create the Render Target View
+
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = textureDesc.Format;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDescGaussV = rtvDesc;
+
+	Graphics::Device->CreateRenderTargetView(ppTexture.Get(), &rtvDesc, m_pPostProcessGaussH_RTV.ReleaseAndGetAddressOf());
+	Graphics::Device->CreateShaderResourceView(ppTexture.Get(), 0, m_pPostProcessGaussH_SRV.ReleaseAndGetAddressOf());
+
+	Graphics::Device->CreateRenderTargetView(ppTextureGaussV.Get(), &rtvDescGaussV, m_pPostProcessGaussV_RTV.ReleaseAndGetAddressOf());
+	Graphics::Device->CreateShaderResourceView(ppTextureGaussV.Get(), 0, m_pPostProcessGaussV_SRV.ReleaseAndGetAddressOf());
+}
+
 
 // --------------------------------------------------------
 // Handle resizing to match the new window size
@@ -422,7 +434,11 @@ void Game::CreatePostProcess() {
 // --------------------------------------------------------
 void Game::OnResize()
 {
-	CreatePostProcess();
+	//Remake Post Process rtv srv
+	m_pPostProcessGaussH_RTV.Reset();
+	m_pPostProcessGaussH_SRV.Reset();
+	CreatePostProcessSRV_RTV();
+
 	for (std::shared_ptr<Camera> camera : m_camerasList) {
 		if (camera == nullptr) return;
 		camera->UpdateProjectionMatrix(Window::AspectRatio());
@@ -646,6 +662,12 @@ void Game::BuildUI() {
 		}
 		ImGui::TreePop();
 	}
+
+	if (ImGui::TreeNode("Post Processing")) {
+		if (ImGui::DragInt("BlurRadius", &m_blurAmount, 1, 0, 100)) {
+		}
+		ImGui::TreePop();
+	}
 	//hide header
 	ImGui::Checkbox("Hide header?", &m_hideHeader);
 	//ending
@@ -688,44 +710,42 @@ void Game::Draw(float deltaTime, float totalTime)
 		Graphics::Context->ClearDepthStencilView(m_pShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	}
+	//shadow
+	ID3D11RenderTargetView* nullRTV{ };
+	Graphics::Context->OMSetRenderTargets(1, &nullRTV, m_pShadowDSV.Get());
+	Graphics::Context->PSSetShader(0, 0, 0);
+
+	D3D11_VIEWPORT viewport = {};
+	viewport.Width = static_cast<float>(m_shadowMapResolution);
+	viewport.Height = static_cast<float>(m_shadowMapResolution);
+	viewport.MaxDepth = 1.0f;
+	Graphics::Context->RSSetViewports(1, &viewport);
+
+	Graphics::Context->RSSetState(m_pShadowRasterizer.Get());
+	
+
+	//draw shadowmap
+	for (GameEntity& entity : m_entitiesList)
 	{
-		//shadow
-		ID3D11RenderTargetView* nullRTV{ };
-		Graphics::Context->OMSetRenderTargets(1, &nullRTV, m_pShadowDSV.Get());
-		Graphics::Context->PSSetShader(0, 0, 0);
-
-		D3D11_VIEWPORT viewport = {};
-		viewport.Width = static_cast<float>(m_shadowMapResolution);
-		viewport.Height = static_cast<float>(m_shadowMapResolution);
-		viewport.MaxDepth = 1.0f;
-		Graphics::Context->RSSetViewports(1, &viewport);
-
-		Graphics::Context->RSSetState(m_pShadowRasterizer.Get());
-		
-
-		//draw shadowmap
-		for (GameEntity& entity : m_entitiesList)
-		{
-			//entity.GetMaterial()->AddSampler(1, m_pShadowSampler);
-			entity.ShadowDraw(m_lightViewMatrix, m_lightProjectionMatrix, m_pShadowVS);
-		}
-
-		//reset
-		Graphics::Context->RSSetState(0);
-		viewport.Width = static_cast<float>(Window::Width());
-		viewport.Height = static_cast<float>(Window::Height());
-
-		Graphics::Context->RSSetViewports(1, &viewport);
-
-		//Graphics::Context->OMSetRenderTargets(
-		//	1, 
-		//	Graphics::BackBufferRTV.GetAddressOf(),
-		//	Graphics::DepthBufferDSV.Get());
+		//entity.GetMaterial()->AddSampler(1, m_pShadowSampler);
+		entity.ShadowDraw(m_lightViewMatrix, m_lightProjectionMatrix, m_pShadowVS);
 	}
 
+	//reset
+	Graphics::Context->RSSetState(0);
+	viewport.Width = static_cast<float>(Window::Width());
+	viewport.Height = static_cast<float>(Window::Height());
+
+	Graphics::Context->RSSetViewports(1, &viewport);
+
+	//Graphics::Context->OMSetRenderTargets(
+	//	1, 
+	//	Graphics::BackBufferRTV.GetAddressOf(),
+	//	Graphics::DepthBufferDSV.Get());
+
 	//post process rtv
-	Graphics::Context->ClearRenderTargetView(m_pPostProcessRTV.Get(), m_backgroundColor);
-	Graphics::Context->OMSetRenderTargets(1, m_pPostProcessRTV.GetAddressOf(), Graphics::DepthBufferDSV.Get());
+	Graphics::Context->ClearRenderTargetView(m_pPostProcessGaussH_RTV.Get(), m_backgroundColor);
+	Graphics::Context->OMSetRenderTargets(1, m_pPostProcessGaussH_RTV.GetAddressOf(), Graphics::DepthBufferDSV.Get());
 
 	// DRAW geometry
 	// - These steps are generally repeated for EACH object you draw
@@ -769,12 +789,12 @@ void Game::Draw(float deltaTime, float totalTime)
 				m_lightViewMatrix, 
 				m_lightProjectionMatrix);
 		}
-		//m_sky.Draw(m_pActiveCamera);
+		m_sky.Draw(m_pActiveCamera);
 	}
 
 	{
 		//post processing
-		Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
+		Graphics::Context->OMSetRenderTargets(1, m_pPostProcessGaussV_RTV.GetAddressOf(), 0);
 		// Activate shaders and bind resources
 
 		//vert shader
@@ -783,21 +803,35 @@ void Game::Draw(float deltaTime, float totalTime)
 		{
 			//Bind horizontal gauss first, render to same RTV using same resources.
 			Graphics::Context->PSSetShader(m_pPostProcessHorizontalGaussPS.Get(), 0, 0);
-			Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessSRV.GetAddressOf());
+			Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessGaussH_SRV.GetAddressOf());
 			Graphics::Context->PSSetSamplers(0, 1, m_pPostProcessSampler.GetAddressOf());
+			GaussianBlurPostProcessConstantBufferHorizontal horizontalGauss(m_blurAmount, 1.0f / Window::Width());
+			Graphics::FillAndBindNextConstantBuffer(
+				&horizontalGauss,
+				sizeof(GaussianBlurPostProcessConstantBufferHorizontal),
+				D3D11_PIXEL_SHADER,
+				0);
 
 			// Also set any required cbuffer data here! (not shown)
 			Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
 
-			////change rtv to backbuffer for final pass
-			//Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
+			//change rtv to backbuffer for final pass
+			//unbind render target
+			//Graphics::Context->OMSetRenderTargets(1, &nullRTV, nullptr);
+			Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
 
 			////vertical Gauss
-			//Graphics::Context->PSSetShader(m_pPostProcessVerticalGaussPS.Get(), 0, 0);
-			//Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessSRV.GetAddressOf()); // same srv, since it's using the same resource
-			//Graphics::Context->PSSetSamplers(0, 1, m_pPostProcessSampler.GetAddressOf());
+			Graphics::Context->PSSetShader(m_pPostProcessVerticalGaussPS.Get(), 0, 0);
+			Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessGaussV_SRV.GetAddressOf()); // same srv, since it's using the same resource
+			Graphics::Context->PSSetSamplers(0, 1, m_pPostProcessSampler.GetAddressOf());
+			GaussianBlurPostProcessConstantBufferVertical verticalGauss(m_blurAmount, 1.0f / Window::Height());
+			Graphics::FillAndBindNextConstantBuffer(
+				&verticalGauss,
+				sizeof(GaussianBlurPostProcessConstantBufferVertical),
+				D3D11_PIXEL_SHADER,
+				0);
 
-			//Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
+			Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
 		}
 		Graphics::Context->IASetInputLayout(m_pVSInputLayout.Get());
 	}

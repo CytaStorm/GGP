@@ -39,6 +39,8 @@ private:
 	void CreateLights();
 	void CreatePostProcess();
 
+	void CreatePostProcessSRV_RTV();
+
 
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
@@ -111,9 +113,12 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPostProcessVerticalGaussPS;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pGaussianPostProcessPSConstantBuffer;
 
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPostProcessRTV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPostProcessSRV;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPostProcessGaussH_RTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPostProcessGaussH_SRV;
 
-	float m_blurAmount;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPostProcessGaussV_RTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPostProcessGaussV_SRV;
+
+	int m_blurAmount = 100;
 	//Microsoft::WRL::ComPtr<ID3D11Texture2D*> m_pPostProcessTexture;
 };
