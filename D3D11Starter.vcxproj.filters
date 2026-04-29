@@ -187,10 +187,13 @@
     <FxCompile Include="ShadowVertexShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="PostProcessPixelShader.hlsl">
+    <FxCompile Include="PixelShader_HorizontalGauss.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="PostProcessVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PixelShader_VerticalGauss.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

@@ -30,31 +30,6 @@ public:
 	void Draw(float deltaTime, float totalTime);
 	void OnResize();
 
-
-	// Initialization helper methods - feel free to customize, combine, remove, etc.
-	template<typename VSConstantBufferStruct>
-	static void LoadVertexShaderWithConstantBuffer(
-		Microsoft::WRL::ComPtr<ID3D11InputLayout>& a_pInputLayout,
-		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
-		Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pVertexShaderConstantBuffer,
-		const std::wstring a_fileName);
-
-	static ID3DBlob* LoadVertexShaderInternal(
-		const std::wstring& a_fileName,
-		Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader);
-
-	//templated function in case other sized constant buffer structs are to be used
-	template <typename PSConstantBufferStruct>
-	static void LoadPixelShaderWithConstantBuffer(
-		PSConstantBufferStruct value,
-		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader,
-		Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pPixelShaderConstantBuffer,
-		const std::wstring a_fileName);
-
-	static void LoadPixelShaderInternal(
-		const std::wstring& a_fileName, 
-		Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader);
-
 private:
 	void CreateGeometry();
 	void CreateEntities(
@@ -140,10 +115,14 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pPostProcessSampler;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_pPostProcessVS;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pPostProcessVSInputLayout;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPostProcessPS;
+
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPostProcessHorizontalGaussPS;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPostProcessVerticalGaussPS;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pGaussianPostProcessPSConstantBuffer;
 
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPostProcessRTV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPostProcessSRV;
 
+	float m_blurAmount;
 	//Microsoft::WRL::ComPtr<ID3D11Texture2D*> m_pPostProcessTexture;
 };

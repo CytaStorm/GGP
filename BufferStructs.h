@@ -47,3 +47,10 @@ struct ShadowVSData
 	ShadowVSData();
 };
 
+struct GaussianBlurPostProcessConstantBuffer 
+{
+	float m_blurAmount;
+	
+	GaussianBlurPostProcessConstantBuffer();
+};
+

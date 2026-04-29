@@ -8,6 +8,7 @@
 #include "Camera.h"
 #include "Material.h"
 #include "BufferStructs.h"
+#include "Helper.h"
 
 class Sky
 {

@@ -1,10 +1,11 @@
 #include "Sky.h"
 #include "WICTextureLoader.h"
 #include "Material.h"
-#include "Game.h"
+//#include "Game.h"
 
 Sky::Sky()
 {
+
 }
 
 Sky::Sky(
@@ -28,7 +29,7 @@ Sky::Sky(
 	Microsoft::WRL::ComPtr<ID3D11Buffer> pPSConstantBuffer;
 
 	//vert
-	Game::LoadVertexShaderWithConstantBuffer<VSConstantBuffer>(
+	Helper::LoadVertexShaderWithConstantBuffer<VSConstantBuffer>(
 		pInputLayout,
 		m_pVertexShader,
 		pVSConstantBuffer,
@@ -36,7 +37,7 @@ Sky::Sky(
 	);
 	
 	//pix
-	Game::LoadPixelShaderWithConstantBuffer<PSConstantBuffer>(
+	Helper::LoadPixelShaderWithConstantBuffer<PSConstantBuffer>(
 		PSConstantBuffer(),
 		m_pPixelShader,
 		pPSConstantBuffer,

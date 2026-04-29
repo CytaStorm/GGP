@@ -2,7 +2,6 @@
 #include "Graphics.h"
 #include "Vertex.h"
 #include "Input.h"
-#include "PathHelpers.h"
 #include "Window.h"
 #include "BufferStructs.h"
 #include "Camera.h"
@@ -10,6 +9,7 @@
 #include <DirectXMath.h>
 #include "WICTextureLoader.h"
 #include "Helper.h"
+#include "PathHelpers.h"
 #include "Window.h"
 
 //ImGui includes
@@ -18,8 +18,6 @@
 #include "ImGUI/imgui_impl_win32.h"
 
 // Needed for a helper function to load pre-compiled shader files
-#pragma comment(lib, "d3dcompiler.lib")
-#include <d3dcompiler.h>
 #include <vector>
 #include <memory>
 
@@ -50,12 +48,13 @@ Game::Game()
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
 
 	//shader
-	LoadVertexShaderWithConstantBuffer<ShadowVSData>(m_pVSInputLayout, m_pShadowVS, m_pShadowVSConstantBuffer, L"ShadowVertexShader.cso");
+	Helper::LoadVertexShaderWithConstantBuffer<ShadowVSData>(m_pVSInputLayout, m_pShadowVS, m_pShadowVSConstantBuffer, L"ShadowVertexShader.cso");
 	m_pVSInputLayout.Reset(); //reset input layout to prevent mem leak
 
-	LoadVertexShaderWithConstantBuffer<VSConstantBuffer>(m_pVSInputLayout, vertexShader, m_pVSConstantBuffer, L"VertexShader.cso");
-	LoadPixelShaderWithConstantBuffer<PSConstantBuffer>(
-		PSConstantBuffer(), pixelShader, m_pPSConstantBuffer, L"PixelShader.cso");
+	Helper::LoadVertexShaderWithConstantBuffer<VSConstantBuffer>(m_pVSInputLayout, vertexShader, m_pVSConstantBuffer, L"VertexShader.cso");
+	Helper::LoadPixelShaderInternal(L"PixelShader.cso", pixelShader);
+	//LoadPixelShaderWithConstantBuffer<PSConstantBuffer>(
+	//	PSConstantBuffer(), pixelShader, m_pPSConstantBuffer, L"PixelShader.cso");
 
 	//Set constant buffers
 	Graphics::Context->VSSetConstantBuffers(0, 1, m_pVSConstantBuffer.GetAddressOf());
@@ -120,117 +119,6 @@ Game::~Game()
 	ImGui::DestroyContext();
 }
 
-// --------------------------------------------------------
-// Loads shaders from compiled shader object (.cso) files
-// and also created the Input Layout that describes our 
-// vertex data to the rendering pipeline. 
-// - Input Layout creation is done here because it must 
-//    be verified against vertex shader byte code
-// - We'll have that byte code already loaded below
-// --------------------------------------------------------
-template <typename VSConstantBufferStruct>
-void Game::LoadVertexShaderWithConstantBuffer(
-	Microsoft::WRL::ComPtr<ID3D11InputLayout>& a_pInputLayout,
-	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader,
-	Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pVertexShaderConstantBuffer,
-	const std::wstring a_fileName)
-{
-	ID3DBlob* vertexShaderBlob = LoadVertexShaderInternal(a_fileName, a_pVertexShader);
-	
-	//input layout
-	D3D11_INPUT_ELEMENT_DESC inputElements[4] = {};
-
-	// Set up the first element - a position, which is 3 float values
-	inputElements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;				// Most formats are described as color channels; really it just means "Three 32-bit floats"
-	inputElements[0].SemanticName = "POSITION";							// This is "POSITION" - needs to match the semantics in our vertex shader input!
-	inputElements[0].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	// How far into the vertex is this?  Assume it's after the previous element
-
-	//set up uv coords
-	inputElements[1].Format = DXGI_FORMAT_R32G32_FLOAT;		
-	inputElements[1].SemanticName = "TEXCOORD";							
-	inputElements[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	
-
-	//set up normal
-	inputElements[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;		
-	inputElements[2].SemanticName = "NORMAL";							
-	inputElements[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	
-
-	//set up tangent
-	inputElements[3].Format = DXGI_FORMAT_R32G32B32_FLOAT;		
-	inputElements[3].SemanticName = "TANGENT";							
-	inputElements[3].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;	
-
-	// Create the input layout, verifying our description against actual shader code
-	Graphics::Device->CreateInputLayout(
-		inputElements,							// An array of descriptions
-		4,										// How many elements in that array?
-		vertexShaderBlob->GetBufferPointer(),	// Pointer to the code of a shader that uses this layout
-		vertexShaderBlob->GetBufferSize(),		// Size of the shader code that uses this layout
-		a_pInputLayout.GetAddressOf());			// Address of the resulting ID3D11InputLayout pointer
-
-	a_pVertexShaderConstantBuffer.Reset();
-	//Create & bind vertex shader constant buffer
-	D3D11_BUFFER_DESC VS_ConstantBufferDesc = {};
-	VS_ConstantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	VS_ConstantBufferDesc.ByteWidth = (sizeof(VSConstantBufferStruct) + 15) / 16 * 16;
-	VS_ConstantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	VS_ConstantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	Graphics::Device->CreateBuffer(&VS_ConstantBufferDesc, 0, a_pVertexShaderConstantBuffer.GetAddressOf());
-}
-
-ID3DBlob* Game::LoadVertexShaderInternal(
-	const std::wstring& a_fileName, 
-	Microsoft::WRL::ComPtr<ID3D11VertexShader>& a_pVertexShader)
-{
-	ID3DBlob* vertexShaderBlob;
-	D3DReadFileToBlob(FixPath(a_fileName).c_str(), &vertexShaderBlob);
-
-	Graphics::Device->CreateVertexShader(
-		vertexShaderBlob->GetBufferPointer(), // Pointer to start of binary data
-		vertexShaderBlob->GetBufferSize(),// How big is that data?
-		0,// No classes in this shader
-		a_pVertexShader.GetAddressOf());// ID3D11VertexShader**
-
-	return vertexShaderBlob;
-}
-
-template <typename PSConstantBufferStruct>
-void Game::LoadPixelShaderWithConstantBuffer(
-	PSConstantBufferStruct a_pixelBufferStruct,
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader,
-	Microsoft::WRL::ComPtr<ID3D11Buffer>& a_pPixelShaderConstantBuffer,
-	const std::wstring a_fileName)
-{
-	LoadPixelShaderInternal(a_fileName, a_pPixelShader);
-
-	a_pPixelShaderConstantBuffer.Reset();
-	//Create & bind pixel shader constant buffer
-	D3D11_BUFFER_DESC PS_ConstantBufferDesc = {};
-	PS_ConstantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	PS_ConstantBufferDesc.ByteWidth = (sizeof(PSConstantBufferStruct) + 15) / 16 * 16;
-	PS_ConstantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	PS_ConstantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	
-	Graphics::Device->CreateBuffer(&PS_ConstantBufferDesc, 0, a_pPixelShaderConstantBuffer.GetAddressOf());
-}
-
-void Game::LoadPixelShaderInternal(
-	const std::wstring& a_fileName,
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>& a_pPixelShader)
-{
-	ID3DBlob* pixelShaderBlob;
-	D3DReadFileToBlob(FixPath(a_fileName).c_str(), &pixelShaderBlob);
-
-	Graphics::Device->CreatePixelShader(
-		pixelShaderBlob->GetBufferPointer(), // Pointer to start of binary data
-		pixelShaderBlob->GetBufferSize(),// How big is that data?
-		0,// No classes in this shader
-		a_pPixelShader.GetAddressOf());// ID3D11VertexShader**
-}
-
-// --------------------------------------------------------
-// Creates the geometry we're going to draw
-// --------------------------------------------------------
 void Game::CreateGeometry()
 {
 	m_pCube = std::make_shared<Mesh>(FixPath("../../Assets/Meshes/cube.obj").c_str());
@@ -505,7 +393,7 @@ void Game::CreatePostProcess() {
 	//Load shaders
 	{
 		//vert shader
-		ID3DBlob* vertexShaderBlob = LoadVertexShaderInternal(L"PostProcessVertexShader.cso", m_pPostProcessVS);
+		ID3DBlob* vertexShaderBlob = Helper::LoadVertexShaderInternal(L"PostProcessVertexShader.cso", m_pPostProcessVS);
 		D3D11_INPUT_ELEMENT_DESC inputElements[2] = {};
 
 		//input layout
@@ -526,7 +414,8 @@ void Game::CreatePostProcess() {
 	}
 	{
 		//pixel shader
-		LoadPixelShaderInternal(L"PostProcessPixelShader.cso", m_pPostProcessPS);
+		Helper::LoadPixelShaderInternal(L"PixelShader_HorizontalGauss.cso", m_pPostProcessHorizontalGaussPS);
+		Helper::LoadPixelShaderInternal(L"PixelShader_VerticalGauss.cso", m_pPostProcessVerticalGaussPS);
 	}
 }
 
@@ -877,8 +766,9 @@ void Game::Draw(float deltaTime, float totalTime)
 			entity.GetMaterial()->AddTextureSRV(4, m_pShadowSRV);
 			entity.GetMaterial()->AddSampler(1, m_pShadowSampler);
 			entity.GetMaterial()->BindTexturesAndSamplers();
-			entity.Draw(m_pVSConstantBuffer,
-				m_pPSConstantBuffer, 
+			entity.Draw(
+				//m_pVSConstantBuffer,
+				//m_pPSConstantBuffer, 
 				m_pActiveCamera, 
 				m_lightViewMatrix, 
 				m_lightProjectionMatrix);
@@ -889,15 +779,30 @@ void Game::Draw(float deltaTime, float totalTime)
 	{
 		//post processing
 		Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
-
 		// Activate shaders and bind resources
+
+		//vert shader
 		Graphics::Context->VSSetShader(m_pPostProcessVS.Get(), 0, 0);
-		Graphics::Context->PSSetShader(m_pPostProcessPS.Get(), 0, 0);
-		Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessSRV.GetAddressOf());
-		Graphics::Context->PSSetSamplers(0, 1, m_pPostProcessSampler.GetAddressOf());
-		// Also set any required cbuffer data here! (not shown)
 		Graphics::Context->IASetInputLayout(m_pPostProcessVSInputLayout.Get());
-		Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
+		{
+			//Bind horizontal gauss first, render to same RTV using same resources.
+			Graphics::Context->PSSetShader(m_pPostProcessHorizontalGaussPS.Get(), 0, 0);
+			Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessSRV.GetAddressOf());
+			Graphics::Context->PSSetSamplers(0, 1, m_pPostProcessSampler.GetAddressOf());
+
+			// Also set any required cbuffer data here! (not shown)
+			Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
+
+			////change rtv to backbuffer for final pass
+			//Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
+
+			////vertical Gauss
+			//Graphics::Context->PSSetShader(m_pPostProcessVerticalGaussPS.Get(), 0, 0);
+			//Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessSRV.GetAddressOf()); // same srv, since it's using the same resource
+			//Graphics::Context->PSSetSamplers(0, 1, m_pPostProcessSampler.GetAddressOf());
+
+			//Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
+		}
 		Graphics::Context->IASetInputLayout(m_pVSInputLayout.Get());
 	}
 

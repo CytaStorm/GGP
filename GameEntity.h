@@ -24,8 +24,8 @@ public:
 	std::shared_ptr<Mesh> GetMesh();
 	Transform& GetTransform();
 	void Draw(
-		Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer,
-		Microsoft::WRL::ComPtr<ID3D11Buffer> a_PSConstantBuffer,
+		//Microsoft::WRL::ComPtr<ID3D11Buffer> a_VSConstantBuffer,
+		//Microsoft::WRL::ComPtr<ID3D11Buffer> a_PSConstantBuffer,
 		std::shared_ptr<Camera> a_camera,
 		DirectX::XMFLOAT4X4 a_lightViewMatrix,
 		DirectX::XMFLOAT4X4 a_lightProjectionMatrix);

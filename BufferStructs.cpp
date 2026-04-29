@@ -44,3 +44,8 @@ ShadowVSData::ShadowVSData()
 	DirectX::XMStoreFloat4x4(&m_view, DirectX::XMMatrixIdentity());
 	DirectX::XMStoreFloat4x4(&m_world, DirectX::XMMatrixIdentity());
 }
+
+GaussianBlurPostProcessConstantBuffer::GaussianBlurPostProcessConstantBuffer()
+{
+	m_blurAmount = 0;
+}
