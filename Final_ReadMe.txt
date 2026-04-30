@@ -1,0 +1,1 @@
+For Task 2, I added chromatic aberration with controllable r/g/b offsets in ImGUI.

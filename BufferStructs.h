@@ -65,3 +65,15 @@ struct GaussianBlurPostProcessConstantBufferVertical
 	GaussianBlurPostProcessConstantBufferVertical(int a_blurRadius, float a_pixelHeight);
 };
 
+struct ChromaticAbberationPostProcessConstantBuffer 
+{
+	DirectX::XMFLOAT3 m_rgbOffset;
+	float buffer;
+	DirectX::XMFLOAT2 m_mouseFocusPoint;
+
+	ChromaticAbberationPostProcessConstantBuffer();
+	ChromaticAbberationPostProcessConstantBuffer(
+		DirectX::XMFLOAT2 a_mouseFocusPoint,
+		DirectX::XMFLOAT3 a_rgbOffset);
+};
+

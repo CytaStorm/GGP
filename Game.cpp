@@ -383,6 +383,7 @@ void Game::CreatePostProcess() {
 		//pixel shader
 		Helper::LoadPixelShader(L"PixelShader_HorizontalGauss.cso", m_pPostProcessHorizontalGaussPS);
 		Helper::LoadPixelShader(L"PixelShader_VerticalGauss.cso", m_pPostProcessVerticalGaussPS);
+		Helper::LoadPixelShader(L"PixelShader_ChromaticAbberation.cso", m_pPostProcessChromaticAbberationPS);
 	}
 }
 
@@ -404,6 +405,7 @@ void Game::CreatePostProcessSRV_RTV()
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
 
 	D3D11_TEXTURE2D_DESC textureDescGaussV = textureDesc;
+	D3D11_TEXTURE2D_DESC textureDescChromaticAbberation = textureDesc;
 
 	// Create the resource (no need to track it after the views are created below)
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTexture;
@@ -411,6 +413,9 @@ void Game::CreatePostProcessSRV_RTV()
 
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTextureGaussV;
 	Graphics::Device->CreateTexture2D(&textureDescGaussV, 0, ppTextureGaussV.GetAddressOf());
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTextureChromaticAbberation;
+	Graphics::Device->CreateTexture2D(&textureDescChromaticAbberation, 0, ppTextureChromaticAbberation.GetAddressOf());
 	// Create the Render Target View
 
 	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
@@ -419,12 +424,18 @@ void Game::CreatePostProcessSRV_RTV()
 	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 
 	D3D11_RENDER_TARGET_VIEW_DESC rtvDescGaussV = rtvDesc;
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDescChromaticAbberation = rtvDesc;
 
 	Graphics::Device->CreateRenderTargetView(ppTexture.Get(), &rtvDesc, m_pPostProcessGaussH_RTV.ReleaseAndGetAddressOf());
 	Graphics::Device->CreateShaderResourceView(ppTexture.Get(), 0, m_pPostProcessGaussH_SRV.ReleaseAndGetAddressOf());
 
 	Graphics::Device->CreateRenderTargetView(ppTextureGaussV.Get(), &rtvDescGaussV, m_pPostProcessGaussV_RTV.ReleaseAndGetAddressOf());
 	Graphics::Device->CreateShaderResourceView(ppTextureGaussV.Get(), 0, m_pPostProcessGaussV_SRV.ReleaseAndGetAddressOf());
+
+	Graphics::Device->CreateRenderTargetView(
+		ppTextureChromaticAbberation.Get(), &rtvDescChromaticAbberation, m_pPostProcessChromaticAbberation_RTV.ReleaseAndGetAddressOf());
+	Graphics::Device->CreateShaderResourceView(
+		ppTextureChromaticAbberation.Get(), 0, m_pPostProcessChromaticAbberation_SRV.ReleaseAndGetAddressOf());
 }
 
 
@@ -666,6 +677,9 @@ void Game::BuildUI() {
 	if (ImGui::TreeNode("Post Processing")) {
 		if (ImGui::DragInt("BlurRadius", &m_blurAmount, 1, 0, 100)) {
 		}
+		if (ImGui::DragFloat3("Chromatic Abberation Offsets", &m_chromaticAbberationOffset.x, 0.001, -0.01, 0.01)) {
+
+		}
 		ImGui::TreePop();
 	}
 	//hide header
@@ -818,7 +832,9 @@ void Game::Draw(float deltaTime, float totalTime)
 			//change rtv to backbuffer for final pass
 			//unbind render target
 			//Graphics::Context->OMSetRenderTargets(1, &nullRTV, nullptr);
-			Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
+			Graphics::Context->OMSetRenderTargets(1, m_pPostProcessChromaticAbberation_RTV.GetAddressOf(), 0);
+			//Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
+
 
 			////vertical Gauss
 			Graphics::Context->PSSetShader(m_pPostProcessVerticalGaussPS.Get(), 0, 0);
@@ -828,6 +844,24 @@ void Game::Draw(float deltaTime, float totalTime)
 			Graphics::FillAndBindNextConstantBuffer(
 				&verticalGauss,
 				sizeof(GaussianBlurPostProcessConstantBufferVertical),
+				D3D11_PIXEL_SHADER,
+				0);
+
+			Graphics::Context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
+
+			//chromatic abberation
+			Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
+			Graphics::Context->PSSetShader(m_pPostProcessChromaticAbberationPS.Get(), 0, 0);
+			Graphics::Context->PSSetShaderResources(0, 1, m_pPostProcessChromaticAbberation_SRV.GetAddressOf()); // same srv, since it's using the same resource
+			Graphics::Context->PSSetSamplers(0, 1, m_pPostProcessSampler.GetAddressOf());
+			ChromaticAbberationPostProcessConstantBuffer chromaticAbberation(
+				//DirectX::XMFLOAT2(static_cast<float>(Input::GetMouseX()), static_cast<float>(Input::GetMouseY())),
+				DirectX::XMFLOAT2{ 0.0f, 0.0f },
+				m_chromaticAbberationOffset
+			);
+			Graphics::FillAndBindNextConstantBuffer(
+				&chromaticAbberation,
+				sizeof(ChromaticAbberationPostProcessConstantBuffer),
 				D3D11_PIXEL_SHADER,
 				0);
 

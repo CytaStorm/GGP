@@ -111,7 +111,7 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPostProcessHorizontalGaussPS;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPostProcessVerticalGaussPS;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_pGaussianPostProcessPSConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPostProcessChromaticAbberationPS;
 
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPostProcessGaussH_RTV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPostProcessGaussH_SRV;
@@ -119,6 +119,10 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPostProcessGaussV_RTV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPostProcessGaussV_SRV;
 
-	int m_blurAmount = 100;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPostProcessChromaticAbberation_RTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPostProcessChromaticAbberation_SRV;
+	int m_blurAmount = 10;
+
+	DirectX::XMFLOAT3 m_chromaticAbberationOffset = {0.009f, 0.006f, -0.006f};
 	//Microsoft::WRL::ComPtr<ID3D11Texture2D*> m_pPostProcessTexture;
 };

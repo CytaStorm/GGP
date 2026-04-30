@@ -68,3 +68,17 @@ GaussianBlurPostProcessConstantBufferVertical::GaussianBlurPostProcessConstantBu
 	m_blurRadius = a_blurRadius;
 	m_pixelHeight = a_pixelHeight;
 }
+
+ChromaticAbberationPostProcessConstantBuffer::ChromaticAbberationPostProcessConstantBuffer()
+{
+	m_mouseFocusPoint = { 0.0f, 0.0f };
+	m_rgbOffset = { 0.0f, 0.0f, 0.0f };
+}
+
+ChromaticAbberationPostProcessConstantBuffer::ChromaticAbberationPostProcessConstantBuffer(
+	DirectX::XMFLOAT2 a_mouseFocusPoint,
+	DirectX::XMFLOAT3 a_rgbOffset)
+{
+	m_mouseFocusPoint = a_mouseFocusPoint;
+	m_rgbOffset = a_rgbOffset;
+}
